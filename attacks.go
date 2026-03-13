@@ -28,6 +28,7 @@ const (
 const (
 	white = iota
 	black
+	both
 )
 
 var rng *rand.Rand
@@ -71,6 +72,7 @@ var rookRelevantBits [64]int = [64]int{
 
 var rookMagics [64]MagicEntry = [64]MagicEntry{
 	{mask: 0x000101010101017E, magic: 0x0A80004000108020, shift: 52, offset: 0},
+	{mask: 0x000202020202027C, magic: 0x0140100020004000, shift: 53, offset: 4096},
 	{mask: 0x000404040404047A, magic: 0x01000B1041012000, shift: 53, offset: 6144},
 	{mask: 0x0008080808080876, magic: 0x0480044800100080, shift: 53, offset: 8192},
 	{mask: 0x001010101010106E, magic: 0x0280024800040080, shift: 53, offset: 10240},
@@ -134,6 +136,7 @@ var rookMagics [64]MagicEntry = [64]MagicEntry{
 	{mask: 0x3E40404040404000, magic: 0x0A1010D211081004, shift: 53, offset: 96256},
 	{mask: 0x7E80808080808000, magic: 0x4A88008041002402, shift: 52, offset: 98304},
 }
+
 const RookMapSize uint = 102400
 
 var bishopMagics [64]MagicEntry = [64]MagicEntry{
@@ -202,7 +205,10 @@ var bishopMagics [64]MagicEntry = [64]MagicEntry{
 	{mask: 0x0020100804020000, magic: 0x0028483304480202, shift: 59, offset: 5152},
 	{mask: 0x0040201008040200, magic: 0x08C0102252819288, shift: 58, offset: 5184},
 }
-const BishopNapSize uint = 5248
+
+const BishopMapSize uint = 5248
+
+var AttackTable []uint64 = make([]uint64, RookMapSize+BishopMapSize)
 
 /**
 VISUALIZATION:
@@ -214,30 +220,11 @@ South (DOWN) = << 8
 North (UP) = >> 8
 */
 
-func randomUint64() uint64 {
-	var u1, u2, u3, u4 uint64
-	u1 = uint64(rand.Uint32()) & 0xFFFF
-	u2 = uint64(rand.Uint32()) & 0xFFFF
-	u3 = uint64(rand.Uint32()) & 0xFFFF
-	u4 = uint64(rand.Uint32()) & 0xFFFF
-	return u1 | (u2 << 16) | (u3 << 32) | (u4 << 48)
-}
-
-// func generateMagicNumber() uint64 {
-// 	return randomUint64() & randomUint64() & randomUint64()
-// }
-
-// r = rand.New(rand.NewSource(12345))
-
 func init() {
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
 	xorShift65Rand = &Random{
 		state: 0xFFAAB58C5833FE89,
 	}
-}
-
-func generateMagicNumber() uint64 {
-	return xorShift65Rand.xorShift64() & xorShift65Rand.xorShift64() & xorShift65Rand.xorShift64()
 }
 
 func maskPawnAttacks(side int, square Square) uint64 {
@@ -576,4 +563,43 @@ func rank(square Square) int8 {
 
 func file(square Square) int8 {
 	return int8(square) & 7
+}
+
+func initSliderAttacks(square Square, piece SliderPiece, magic MagicEntry) {
+	attackMask := magic.mask
+	bitsInMask := popCount(attackMask)
+
+	// Generate all possible occupancy variations for the attack mask
+	for index := 0; index < (1 << bitsInMask); index++ {
+		occupancy := SetOccupancy(index, bitsInMask, attackMask)
+
+		var attacks uint64
+		if piece == Rook {
+			attacks = rookAttacks(square, occupancy)
+		} else {
+			attacks = bishopAttacks(square, occupancy)
+		}
+
+		magicIdx := (occupancy * magic.magic) >> magic.shift
+
+		AttackTable[uint64(magic.offset)+magicIdx] = attacks
+	}
+}
+
+func InitSliderTables() {
+	for sq := range 64 {
+		initSliderAttacks(Square(sq), Rook, rookMagics[sq])
+		initSliderAttacks(Square(sq), Bishop, bishopMagics[sq])
+	}
+
+}
+
+func GetAttacks(sq Square, occupancy uint64, magicEntry MagicEntry) uint64 {
+	// mask the occupancy to only keep relevant squares
+	// ensures bits outside the mask don't mess up the multiplication
+	occupancy &= magicEntry.mask
+
+	index := (occupancy * magicEntry.magic) >> magicEntry.shift
+
+	return AttackTable[magicEntry.offset+uint32(index)]
 }

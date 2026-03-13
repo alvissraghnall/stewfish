@@ -7,6 +7,9 @@ build:
 test:
 	go test -v ./...
 
+windows:
+	GOOS=windows GOARCH=amd64 go build -o stewfish.exe
+
 clean:
 	rm -f stewfish
 
