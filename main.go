@@ -22,10 +22,17 @@ func main() {
 
 	// initMagicNumbers()
 
-	PrintBoardWithPieces()
+	// PrintBoardWithPieces()
 
 	// fen := "r1bqkbnr/pppppppp/2n5/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq e3 0 2"
 	fen := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
-	ParseFEN(fen)
-	PrintBoardWithPieces()
+
+	var board *Board = NewBoard()
+	err := board.FenSetup(fen)
+	if err != nil {
+		panic(err)
+	}
+	board.PrintBoardWithPieces()
+
+	board.GenerateMoves()
 }

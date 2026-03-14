@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 )
 
@@ -13,6 +15,7 @@ const (
 	EmDash           rune = '–'
 	Space            rune = ' '
 	FenStartPosition      = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	MaxMoveRule           = 100
 )
 
 type GameState struct {
@@ -23,7 +26,35 @@ type GameState struct {
 	FullmoveNumber  uint16
 }
 
+func NewGameState() *GameState {
+	return &GameState{
+		SideToMove:      white,
+		CastlingRights:  0,
+		HalfMoveClock:   0,
+		EnPassantSquare: none,
+		FullmoveNumber:  1,
+	}
+}
+
 const MaxGameMoves = 2048
+const EnPassantSquaresWhiteStart Square = 40
+const EnPassantSquaresWhiteEnd Square = 47
+const EnPassantSquaresBlackStart Square = 16
+const EnPassantSquaresBlackEnd Square = 23
+
+type BoardSetup interface {
+	FenSetup(fen string) error
+}
+
+type SquareAttacked interface {
+	isSquareAttacked(sq Square, side int) bool
+}
+
+type PrintBoard interface {
+	PrintBoardWithPieces()
+	GetPieceOnSquare() int
+	getCastlingRightsString() string
+}
 
 type Fen struct {
 	board          *Board
@@ -114,14 +145,10 @@ func (e *FenParseError) Error() string {
 	return fmt.Sprintf("Part %d: %s", e.Part, e.Message)
 }
 
-type BoardMethods interface {
-	FenSetup(fen string) error
-}
-
 type Board struct {
 	Bitboards          [12]uint64
 	OccupancyBitboards [3]uint64
-	State              GameState
+	State              *GameState
 	History            *History
 	PieceList          [64]Square
 }
@@ -130,7 +157,7 @@ func NewBoard() *Board {
 	return &Board{
 		Bitboards:          [12]uint64{},
 		OccupancyBitboards: [3]uint64{},
-		State:              GameState{},
+		State:              NewGameState(),
 		History:            NewHistory(),
 	}
 }
@@ -222,7 +249,10 @@ func (f *Fen) EnPassant() error {
 	}
 	if len(part) == 2 {
 		sq := slices.Index(BitboardSquares[:], part)
-		if sq >= 0 {
+		if (sq >= int(EnPassantSquaresWhiteStart) && sq <= int(EnPassantSquaresWhiteEnd)) ||
+			(sq >= int(EnPassantSquaresBlackStart) && sq <= int(EnPassantSquaresBlackEnd)) {
+
+			println(sq)
 			f.board.State.EnPassantSquare = Square(sq)
 			return nil
 		}
@@ -234,7 +264,14 @@ func (f *Fen) EnPassant() error {
 }
 
 func (f *Fen) HalfMoveClock() error {
-
+	part := f.fenParts[f.currentPartIdx]
+	if l := len(part); l >= 1 && l <= 3 {
+		x, err := strconv.ParseUint(part, 10, 8)
+		if err == nil && x <= MaxMoveRule {
+			f.board.State.HalfMoveClock = uint8(x)
+			return nil
+		}
+	}
 	return &FenParseError{
 		Part:    5,
 		Message: "Error parsing fifth part of FEN string.",
@@ -243,14 +280,55 @@ func (f *Fen) HalfMoveClock() error {
 }
 
 func (f *Fen) FullMoveNumber() error {
+	part := f.fenParts[f.currentPartIdx]
+	if l := len(part); l >= 1 && l <= 4 {
+
+		x, err := strconv.ParseUint(part, 10, 16)
+
+		if err == nil && x <= MaxGameMoves {
+			f.board.State.FullmoveNumber = uint16(x)
+			return nil
+		}
+	}
 
 	return &FenParseError{
-		Part:    5,
-		Message: "Error parsing fifth part of FEN string.",
+		Part:    6,
+		Message: "Error parsing sixth part of FEN string.",
 	}
 }
 
-// / This function splits the incoming FEN-string into its component parts. It does a bit of error handling, such as replacing the sometimes (mistakenly) used "em-dash" with the normal dash. Also, if the FEN-string turns out to be 4 parts long, the values 0 and 1 are assumed for the last two parts.
+func (board *Board) FenSetup(fen string) error {
+	fenParts, err := splitFenString(fen)
+	if err != nil {
+		return err
+	}
+	tempBoard := NewBoard()
+	f := NewFen(tempBoard)
+	f.fenParts = fenParts
+
+	fenSteps := []func() error{
+		f.pieces,
+		f.sideToMove,
+		f.castling,
+		f.EnPassant,
+		f.HalfMoveClock,
+		f.FullMoveNumber,
+	}
+
+	for i, step := range fenSteps {
+		f.currentPartIdx = i
+		if err := step(); err != nil {
+			return err
+		}
+	}
+
+	*board = *tempBoard
+	return nil
+}
+
+// / This function splits the incoming FEN-string into its component parts.
+// It replaces the sometimes (mistakenly) used "em-dash" with the normal dash.
+// Also, if the FEN-string turns out to be 4 parts long, the values 0 and 1 are assumed for the last two parts.
 func splitFenString(fenString string) ([]string, error) {
 	const ShortFenLength uint = 4
 
@@ -271,4 +349,76 @@ func splitFenString(fenString string) ([]string, error) {
 
 	return fenAsSlice, nil
 
+}
+
+func (board *Board) PrintBoardWithPieces() {
+	fmt.Println()
+	for rank := range 8 {
+		for file := range 8 {
+
+			var square Square = Square(rank*8 + file)
+
+			if file == 0 {
+				fmt.Printf("  %d ", 8-rank)
+			}
+
+			piece := board.GetPieceOnSquare(square)
+			if piece == -1 {
+				fmt.Printf(" .")
+				continue
+			}
+			if runtime.GOOS == "windows" {
+				fmt.Printf(" %c", asciiPieces[piece])
+			} else {
+				fmt.Printf(" %c", unicodePieces[piece])
+			}
+		}
+		fmt.Println()
+	}
+
+	// print board files
+	fmt.Println("\n     a b c d e f g h")
+
+	fmt.Println()
+
+	if board.State.SideToMove == white {
+		fmt.Println("Side to move: White")
+	} else {
+		fmt.Println("Side to move: Black")
+	}
+
+	if board.State.EnPassantSquare != none {
+		fmt.Printf("En Passant Square: %s\n", BitboardSquares[board.State.EnPassantSquare])
+	} else {
+		fmt.Printf("En Passant Square: None\n")
+	}
+
+	fmt.Printf("Castling Rights: %s\n", board.getCastlingRightsString())
+
+}
+
+func (board *Board) GetPieceOnSquare(square Square) int {
+	for piece := range k + 1 {
+		if getBit(board.Bitboards[piece], square) == 1 {
+			return piece
+		}
+	}
+	return -1
+}
+
+func (board *Board) getCastlingRightsString() string {
+	var rights string
+	if board.State.CastlingRights&whiteKingside != 0 {
+		rights += "K"
+	}
+	if board.State.CastlingRights&whiteQueenside != 0 {
+		rights += "Q"
+	}
+	if board.State.CastlingRights&blackKingside != 0 {
+		rights += "k"
+	}
+	if board.State.CastlingRights&blackQueenside != 0 {
+		rights += "q"
+	}
+	return rights
 }
