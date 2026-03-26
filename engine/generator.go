@@ -1,6 +1,9 @@
-package main
+package engine
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/alvissraghnall/stewfish/util"
+)
 
 type MagicEntry struct {
 	mask   uint64
@@ -17,7 +20,7 @@ const (
 	Bishop
 )
 
-func findMagicNumber(square Square, piece SliderPiece, random *Random) MagicEntry {
+func findMagicNumber(square Square, piece SliderPiece, random *util.Random) MagicEntry {
 	var mask uint64
 
 	if piece == Bishop {
@@ -56,7 +59,7 @@ func findMagicNumber(square Square, piece SliderPiece, random *Random) MagicEntr
 	// Search for a Magic Number
 	for range 100_000_000 {
 		// generate SPARSE random numbers.
-		magic := random.xorShift64() & random.xorShift64() & random.xorShift64()
+		magic := random.XorShift64() & random.XorShift64() & random.XorShift64()
 
 		// If the multiplication doesn't push bits into the upper part of the uint64,
 		// the magic will likely cause collisions.
@@ -98,7 +101,7 @@ func findMagicNumber(square Square, piece SliderPiece, random *Random) MagicEntr
 }
 
 func initMagicNumbers() {
-	rand := &Random{state: 0xFFAAB58C5833FE89}
+	rand := util.NewRandom(0xFFAAB58C5833FE89)
 
 	var rookMagics [64]MagicEntry
 	var bishopMagics [64]MagicEntry

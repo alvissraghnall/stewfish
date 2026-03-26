@@ -1,10 +1,12 @@
-package main
+package engine
 
 import (
 	"fmt"
 	"math/bits"
 	"math/rand"
 	"time"
+
+	"github.com/alvissraghnall/stewfish/util"
 )
 
 const (
@@ -32,7 +34,7 @@ const (
 )
 
 var rng *rand.Rand
-var xorShift65Rand XORShift
+var xorShift65Rand util.XORShift
 
 var BitboardSquares = [64]string{
 	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
@@ -222,9 +224,7 @@ North (UP) = >> 8
 
 func init() {
 	rng = rand.New(rand.NewSource(time.Now().UnixNano()))
-	xorShift65Rand = &Random{
-		state: 0xFFAAB58C5833FE89,
-	}
+	xorShift65Rand = util.NewRandom(0xFFAAB58C5833FE89)
 }
 
 func maskPawnAttacks(side int, square Square) uint64 {

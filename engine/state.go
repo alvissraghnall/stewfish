@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"fmt"
@@ -163,7 +163,7 @@ func NewBoard() *Board {
 }
 
 func (f *Fen) pieces() error {
-	var rank int = 7
+	var rank int = 0
 	var file int = 0
 
 	for _, char := range f.fenParts[f.currentPartIdx] {
@@ -175,7 +175,7 @@ func (f *Fen) pieces() error {
 					Message: "Error parsing first part of FEN string.",
 				}
 			}
-			rank--
+			rank++
 			file = 0
 			continue
 
@@ -228,7 +228,7 @@ func (f *Fen) castling() error {
 			if char == 'K' || char == 'Q' || char == 'k' || char == 'q' {
 				piece, ok := CharPieceMap[char]
 				if ok {
-					f.board.State.CastlingRights |= piece
+					f.board.State.CastlingRights |= int(piece)
 				}
 
 			}
@@ -322,6 +322,16 @@ func (board *Board) FenSetup(fen string) error {
 		}
 	}
 
+	for piece := P; piece <= K; piece++ {
+		tempBoard.OccupancyBitboards[white] |= f.board.Bitboards[piece]
+	}
+	
+	for piece := p; piece <= k; piece++ {
+		tempBoard.OccupancyBitboards[black] |= f.board.Bitboards[piece]
+	}
+	
+	tempBoard.OccupancyBitboards[both] |= tempBoard.OccupancyBitboards[white] | tempBoard.OccupancyBitboards[black]
+
 	*board = *tempBoard
 	return nil
 }
@@ -336,6 +346,7 @@ func splitFenString(fenString string) ([]string, error) {
 		fenString = FenStartPosition
 	}
 
+	fenString = strings.TrimSpace(fenString)
 	fenString = strings.Replace(fenString, string(EmDash), string(Dash), 1)
 	fenAsSlice := strings.Split(fenString, string(Space))
 
@@ -347,6 +358,8 @@ func splitFenString(fenString string) ([]string, error) {
 		return nil, fmt.Errorf("Invalid FEN string: %s", fenString)
 	}
 
+	println(fenString)
+	fmt.Printf("%#v\n", fenAsSlice)
 	return fenAsSlice, nil
 
 }
@@ -362,8 +375,8 @@ func (board *Board) PrintBoardWithPieces() {
 				fmt.Printf("  %d ", 8-rank)
 			}
 
-			piece := board.GetPieceOnSquare(square)
-			if piece == -1 {
+			piece := board.PieceAt(square)
+			if piece == Zilch {
 				fmt.Printf(" .")
 				continue
 			}
@@ -397,13 +410,13 @@ func (board *Board) PrintBoardWithPieces() {
 
 }
 
-func (board *Board) GetPieceOnSquare(square Square) int {
+func (board *Board) PieceAt(square Square) Piece {
 	for piece := range k + 1 {
 		if getBit(board.Bitboards[piece], square) == 1 {
 			return piece
 		}
 	}
-	return -1
+	return Zilch
 }
 
 func (board *Board) getCastlingRightsString() string {
@@ -421,4 +434,10 @@ func (board *Board) getCastlingRightsString() string {
 		rights += "q"
 	}
 	return rights
+}
+
+// checks occupancy bitb oard of both sides to verify if
+// the given square is occupied, or na-da.
+func (board *Board) Occupied (square Square) bool {
+	return getBit(board.OccupancyBitboards[both], square) != 0
 }

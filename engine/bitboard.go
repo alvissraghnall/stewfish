@@ -1,4 +1,4 @@
-package main
+package engine
 
 import (
 	"fmt"
@@ -81,8 +81,10 @@ const (
 	blackQueenside
 )
 
+type Piece uint8
+
 const (
-	P = iota
+	P Piece = iota
 	N
 	B
 	R
@@ -94,13 +96,14 @@ const (
 	r
 	q
 	k
+	Zilch
 )
 
 var asciiPieces = []rune{'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k'}
 
 var unicodePieces = []rune{'♙', '♘', '♗', '♖', '♕', '♔', '♟', '♞', '♝', '♜', '♛', '♚'}
 
-var CharPieceMap = map[rune]int{
+var CharPieceMap = map[rune]Piece{
 	'P': P,
 	'N': N,
 	'B': B,
