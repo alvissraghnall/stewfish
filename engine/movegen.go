@@ -42,32 +42,83 @@ func (board *Board) GenerateMoves(ml *MoveList) {
 
 			switch piece {
 			case P:
-				board.generatePawnMoves(from, -8, piece, ml, side, ownPieces, oppPieces, 6, 1)
+				board.generatePawnMoves(from, -8, ml, side, ownPieces, oppPieces, 6, 1)
 			case p:
-				board.generatePawnMoves(from, 8, piece, ml, side, ownPieces, oppPieces, 1, 6)
+				board.generatePawnMoves(from, 8, ml, side, ownPieces, oppPieces, 1, 6)
 			// UNREVISED !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			case N, n:
-				attacks := knightAttacks[from] &^ ownPieces
-				ml.PushSetwise(from, attacks, Normal)
+				board.generateKnightMoves(from, ml, ownPieces, side)
 			case B, b:
 				attacks := bishopAttacks(from, board.OccupancyBitboards[both]) &^ ownPieces
-				ml.PushSetwise(from, attacks, Normal)
+				ml.PushSetwiseFlag(from, attacks, func(to Square) MoveFlag {
+					if board.OccupiedByOpp(to, side) {
+						return Capture
+					}
+					return Normal
+				})
 			case R, r:
 				attacks := rookAttacks(from, board.OccupancyBitboards[both]) &^ ownPieces
-				ml.PushSetwise(from, attacks, Normal)
+				ml.PushSetwiseFlag(from, attacks, func(to Square) MoveFlag {
+					if board.OccupiedByOpp(to, side) {
+						return Capture
+					}
+					return Normal
+				})
 			case Q, q:
 				attacks := GetQueenAttacks(from, board.OccupancyBitboards[both]) &^ ownPieces
-				ml.PushSetwise(from, attacks, Normal)
+				ml.PushSetwiseFlag(from, attacks, func(to Square) MoveFlag {
+					if board.OccupiedByOpp(to, side) {
+						return Capture
+					}
+					return Normal
+				})
 			case K, k:
 				attacks := kingAttacks[from] &^ ownPieces
-				ml.PushSetwise(from, attacks, Normal)
+				ml.PushSetwiseFlag(from, attacks, func(to Square) MoveFlag {
+					if board.OccupiedByOpp(to, side) {
+						return Capture
+					}
+					return Normal
+				})
 			}
 
 			bitboard = popBit(bitboard, from)
 		}
+		board.generateCastlingMoves(ml, side)
+
 	}
 
-	// board.generateCastlingMoves(ml, side)
+}
+
+func (board *Board) generateCastlingMoves(ml *MoveList, side int) {
+	castle := board.State.CastlingRights
+	eSquareKingside := e8
+	if side == white {
+		eSquareKingside = e1
+	}
+	eSquareQueenside := b8
+	if side == white {
+		eSquareQueenside = b1
+	}
+	switch {
+	case (castle&whiteKingside != 0) || (castle&blackKingside != 0):
+		// ensure square between king and king's rook are empty
+		if !board.Occupied(eSquareKingside+1) && !board.Occupied(eSquareKingside+2) {
+			// ensure king and the kingside squares are not under attacks
+			if !board.isSquareAttacked(eSquareKingside) && !board.isSquareAttacked(eSquareKingside+1) {
+				ml.Add(eSquareKingside, eSquareKingside+2, KingCastle)
+			}
+		}
+	case (castle&whiteQueenside != 0) || (castle&blackQueenside != 0):
+		// ensure square between queen and queen's rook are empty
+		if !board.Occupied(eSquareQueenside) && !board.Occupied(eSquareQueenside+1) && !board.Occupied(eSquareQueenside+2) {
+			// ensure king and the kingside squares are not under attacks
+			if !board.isSquareAttacked(eSquareQueenside+2) && !board.isSquareAttacked(eSquareQueenside+3) {
+				ml.Add(eSquareQueenside+3, eSquareQueenside+1, QueenCastle)
+			}
+		}
+
+	}
 }
 
 // Generate both quiet pawn moves and captures and appends to
@@ -93,7 +144,6 @@ func (board *Board) GenerateMoves(ml *MoveList) {
 func (board *Board) generatePawnMoves(
 	from Square,
 	direction int,
-	piece Piece,
 	ml *MoveList,
 	side int,
 	ownPieces, oppPieces uint64,
@@ -154,4 +204,19 @@ func (board *Board) generatePawnMoves(
 		}
 	}
 
+}
+
+func (board *Board) generateKnightMoves(
+	from Square,
+	ml *MoveList,
+	ownPieces uint64,
+	side int,
+) {
+	attacks := knightAttacks[from] &^ ownPieces
+	ml.PushSetwiseFlag(from, attacks, func(to Square) MoveFlag {
+		if board.OccupiedByOpp(to, side) {
+			return Capture
+		}
+		return Normal
+	})
 }

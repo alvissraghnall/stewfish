@@ -118,6 +118,21 @@ var CharPieceMap = map[rune]Piece{
 	'k': k,
 }
 
+func pieceToChar(p Piece) string {
+	switch p {
+	case N, n:
+		return "n"
+	case B, b:
+		return "b"
+	case R, r:
+		return "r"
+	case Q, q:
+		return "q"
+	default:
+		return ""
+	}
+}
+
 func PrintBitboard(bitboard uint64) {
 	fmt.Println()
 	for rank := range 8 {

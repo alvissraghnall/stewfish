@@ -441,3 +441,12 @@ func (board *Board) getCastlingRightsString() string {
 func (board *Board) Occupied (square Square) bool {
 	return getBit(board.OccupancyBitboards[both], square) != 0
 }
+
+// checks occupancy bitb oard of opp side to verify if
+// the given square is occupied, or na-da.
+func (board *Board) OccupiedByOpp (square Square, side int) bool {
+	if side > 2 {
+		panic("grrr grrrrr")
+	}
+	return getBit(board.OccupancyBitboards[side^1], square) != 0
+}

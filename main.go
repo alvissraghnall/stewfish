@@ -1,6 +1,11 @@
 package main
 
-import "github.com/alvissraghnall/stewfish/engine"
+import (
+	"encoding/json"
+	"fmt"
+
+	"github.com/alvissraghnall/stewfish/engine"
+)
 
 func init () {
 	engine.Init()
@@ -37,5 +42,16 @@ func main() {
 	}
 	board.PrintBoardWithPieces()
 
-	// board.GenerateMoves()
+	ml := engine.NewMoveList()
+
+	board.GenerateMoves(ml)
+
+	// fmt.Printf("%v", ml)
+	
+	ml.Print(0)
+}
+
+func PrintJSON(obj any) { 
+	bytes, _ := json.MarshalIndent(obj, "\t", "\t") 
+	fmt.Println(string(bytes)) 
 }

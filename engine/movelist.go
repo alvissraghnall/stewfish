@@ -11,7 +11,7 @@ type MoveList struct {
 	data internal.ShadowArray[MoveEntry]
 }
 
-func newMoveList() *MoveList {
+func NewMoveList() *MoveList {
 	return &MoveList{
 		data: internal.NewShadowArray[MoveEntry](),
 	}
@@ -39,6 +39,12 @@ func (list *MoveList) Slice() []MoveEntry {
 	return list.data.Slice()
 }
 
+func (ml *MoveList) Print(side int) {
+	for _, move := range ml.Slice() {
+		println(move.move.DebugString(side))
+	}
+}
+
 func (list *MoveList) Len() int {
 	return list.data.Len()
 }
@@ -48,6 +54,14 @@ func (list *MoveList) PushSetwise(from Square, toBB uint64, flag MoveFlag) {
 		to := getIndexOfLS1B(toBB)
 		list.Add(from, Square(to), flag)
 		toBB = popBit(toBB, Square(to))
+	}
+}
+
+func (list *MoveList) PushSetwiseFlag(from Square, toBB uint64, flagFn func(to Square) MoveFlag) {
+	for toBB != 0 {
+		to := Square(getIndexOfLS1B(toBB))
+		list.Add(from, to, flagFn(to))
+		toBB = popBit(toBB, to)
 	}
 }
 

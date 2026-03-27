@@ -611,7 +611,7 @@ func GetAttacks(sq Square, occupancy uint64, magicEntry MagicEntry) uint64 {
 }
 
 func (board *Board) isSquareAttacked(sq Square) bool {
-	side := board.State.SideToMove
+	side := board.State.SideToMove^1
 	if (side == white && (pawnAttacks[black][sq]&board.Bitboards[P]) != 0) ||
 		(side == black && (pawnAttacks[white][sq]&board.Bitboards[p]) != 0) ||
 		(side == white && (knightAttacks[sq]&board.Bitboards[N]) != 0) ||

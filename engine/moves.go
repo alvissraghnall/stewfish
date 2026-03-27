@@ -52,9 +52,35 @@ func NewMove(from Square, to Square, flag MoveFlag) Move {
 	return Move(uint16(from) | (uint16(to) << 6) | (uint16(flag) << 12))
 }
 
-// func (move Move) print() {
-// 	println(BitboardSquares[move.getFrom()], BitboardSquares[move.getTo()], promotedPieces[move.PromotionPiece()])
-// }
+func (move Move) DebugString(side int) string {
+	from := BitboardSquares[move.getFrom()]
+	to := BitboardSquares[move.getTo()]
+	flag := move.getFlag()
+
+	str := from + to
+
+	if move.isPromotion() {
+		str += pieceToChar(move.PromotionPiece(side))
+	}
+
+	if move.isCapture() {
+		str += " (capture)"
+	}
+
+	if flag == EnPassant {
+		str += " (ep)"
+	}
+
+	if flag == KingCastle {
+		str += " (O-O)"
+	}
+
+	if flag == QueenCastle {
+		str += " (O-O-O)"
+	}
+
+	return str
+}
 
 // taking last 6 bits: ergo, 0b0011_1111
 func (move Move) getFrom() Square {
