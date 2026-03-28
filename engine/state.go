@@ -450,3 +450,13 @@ func (board *Board) OccupiedByOpp (square Square, side int) bool {
 	}
 	return getBit(board.OccupancyBitboards[side^1], square) != 0
 }
+
+// apparently a better mechaniosm is to store board state as a stack on board so
+// we could easily revert moves by basically popping off the stack-
+func (board *Board) Copy () Board {
+	return *board
+}
+
+func (board *Board) Takeback () *Board {
+	return board
+}

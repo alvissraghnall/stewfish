@@ -32,10 +32,12 @@ func main() {
 
 	// fen := "r1bqkbnr/pppppppp/2n5/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq e3 0 2"
 	// fen := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+	// fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpP/R3K2R w KQkq a3 0 1 "
 	fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 	// fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpP/R3K2R b KQkq - 0 1 "
 
 	var board *engine.Board = engine.NewBoard()
+	
 	err := board.FenSetup(fen)
 	if err != nil {
 		panic(err)
@@ -45,8 +47,6 @@ func main() {
 	ml := engine.NewMoveList()
 
 	board.GenerateMoves(ml)
-
-	// fmt.Printf("%v", ml)
 	
 	ml.Print(0, board)
 }

@@ -40,9 +40,18 @@ func (list *MoveList) Slice() []MoveEntry {
 }
 
 func (ml *MoveList) Print(side int, board *Board) {
+	var blackMoves, whiteMoves int
 	for _, move := range ml.Slice() {
 		println(move.move.DebugString(side, board))
+		if board.PieceAt(move.move.getFrom()) <= K {
+			whiteMoves += 1
+		} else if board.PieceAt(move.move.getFrom()) > K || board.PieceAt(move.move.getFrom()) <= k {
+			blackMoves += 1
+		}
 	}
+	println("Total moves: ", ml.Len())
+	println("White moves: ", whiteMoves)
+	println("Black moves: ", blackMoves)
 }
 
 func (list *MoveList) Len() int {

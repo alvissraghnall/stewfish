@@ -62,7 +62,7 @@ func (move Move) DebugString(side int, board *Board) string {
 	str := from + to
 	
 	if piece != Zilch {
-		str += "  Piece: " + pieceToChar(piece)
+		str += "  Piece: " + string(unicodePieces[piece])
 	}
 
 	if move.isPromotion() {

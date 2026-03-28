@@ -586,7 +586,7 @@ func initSliderAttacks(square Square, piece SliderPiece, magic MagicEntry) {
 	}
 }
 
-func InitSliderTables() {
+func initSliderTables() {
 	for sq := range 64 {
 		initSliderAttacks(Square(sq), Rook, rookMagics[sq])
 		initSliderAttacks(Square(sq), Bishop, bishopMagics[sq])
