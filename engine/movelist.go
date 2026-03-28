@@ -39,9 +39,9 @@ func (list *MoveList) Slice() []MoveEntry {
 	return list.data.Slice()
 }
 
-func (ml *MoveList) Print(side int) {
+func (ml *MoveList) Print(side int, board *Board) {
 	for _, move := range ml.Slice() {
-		println(move.move.DebugString(side))
+		println(move.move.DebugString(side, board))
 	}
 }
 

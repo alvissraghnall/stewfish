@@ -52,12 +52,18 @@ func NewMove(from Square, to Square, flag MoveFlag) Move {
 	return Move(uint16(from) | (uint16(to) << 6) | (uint16(flag) << 12))
 }
 
-func (move Move) DebugString(side int) string {
+func (move Move) DebugString(side int, board *Board) string {
 	from := BitboardSquares[move.getFrom()]
 	to := BitboardSquares[move.getTo()]
 	flag := move.getFlag()
+	
+	piece := board.PieceAt(move.getFrom())
 
 	str := from + to
+	
+	if piece != Zilch {
+		str += "  Piece: " + pieceToChar(piece)
+	}
 
 	if move.isPromotion() {
 		str += pieceToChar(move.PromotionPiece(side))

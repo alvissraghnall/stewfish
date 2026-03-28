@@ -256,14 +256,14 @@ func maskPawnAttacks(side int, square Square) uint64 {
 func maskKnightAttacks(square Square) uint64 {
 	bb := uint64(1) << square
 
-	return ((bb >> 17) & NotFileA) | // Up 2, Left 1
-		((bb >> 15) & NotFileH) | // Up 2, Right 1
-		((bb >> 10) & NotFileAB) | // Up 1, Left 2
-		((bb >> 6) & NotFileGH) | // Up 1, Right 2
-		((bb << 17) & NotFileH) | // Down 2, Right 1
-		((bb << 15) & NotFileA) | // Down 2, Left 1
-		((bb << 10) & NotFileGH) | // Down 1, Right 2
-		((bb << 6) & NotFileAB) // Down 1, Left 2
+	return ((bb >> 17) & NotFileH) | // Up 2, Left 1
+		((bb >> 15) & NotFileA) | // Up 2, Right 1
+		((bb >> 10) & NotFileGH) | // Up 1, Left 2
+		((bb >> 6) & NotFileAB) | // Up 1, Right 2
+		((bb << 17) & NotFileA) | // Down 2, Right 1
+		((bb << 15) & NotFileH) | // Down 2, Left 1
+		((bb << 10) & NotFileAB) | // Down 1, Right 2
+		((bb << 6) & NotFileGH) // Down 1, Left 2
 }
 
 func maskKingAttacks(square uint8) uint64 {
@@ -610,8 +610,7 @@ func GetAttacks(sq Square, occupancy uint64, magicEntry MagicEntry) uint64 {
 	return AttackTable[magicEntry.offset+uint32(index)]
 }
 
-func (board *Board) isSquareAttacked(sq Square) bool {
-	side := board.State.SideToMove^1
+func (board *Board) isSquareAttacked(sq Square, side int) bool {
 	if (side == white && (pawnAttacks[black][sq]&board.Bitboards[P]) != 0) ||
 		(side == black && (pawnAttacks[white][sq]&board.Bitboards[p]) != 0) ||
 		(side == white && (knightAttacks[sq]&board.Bitboards[N]) != 0) ||

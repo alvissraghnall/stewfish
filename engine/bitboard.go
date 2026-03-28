@@ -118,8 +118,8 @@ var CharPieceMap = map[rune]Piece{
 	'k': k,
 }
 
-func pieceToChar(p Piece) string {
-	switch p {
+func pieceToChar(piece Piece) string {
+	switch piece {
 	case N, n:
 		return "n"
 	case B, b:
@@ -128,6 +128,8 @@ func pieceToChar(p Piece) string {
 		return "r"
 	case Q, q:
 		return "q"
+	case P, p:
+		return "p"
 	default:
 		return ""
 	}
