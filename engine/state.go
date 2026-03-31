@@ -24,6 +24,7 @@ type GameState struct {
 	HalfMoveClock   uint8
 	EnPassantSquare Square
 	FullmoveNumber  uint16
+	CapturedPiece   Piece
 }
 
 func NewGameState() *GameState {
@@ -33,6 +34,7 @@ func NewGameState() *GameState {
 		HalfMoveClock:   0,
 		EnPassantSquare: none,
 		FullmoveNumber:  1,
+		CapturedPiece:   Zilch,
 	}
 }
 
@@ -79,40 +81,48 @@ type FenParser interface {
 	FullMoveNumber() error
 }
 
+type Undo struct {
+	State              GameState
+	Bitboards          [12]uint64
+	OccupancyBitboards [3]uint64
+	PieceList          [64]Square
+}
+
 type History struct {
-	list  [MaxGameMoves]GameState
+	list  [MaxGameMoves]Undo
 	count uint
 }
 
 type IHistory interface {
-	push()
-	pop() (GameState, bool, error)
-	peek() GameState
+	push(state Undo)
+	pop() (Undo, bool, error)
+	peek() Undo
 	clear()
 	isEmpty() bool
 	isFull() bool
 	size() uint
-	getRef(index uint) *GameState
+	getRef(index uint) *Undo
 }
 
 func NewHistory() *History {
 	return &History{}
 }
 
-func (h *History) push(state GameState) {
+func (h *History) push(state Undo) {
 	h.list[h.count] = state
 	h.count++
 }
 
-func (h *History) pop() (GameState, bool, error) {
+// Pops the last undo snapshot from the history and returns it. If the history is empty, it returns an error.
+func (h *History) pop() (Undo, bool, error) {
 	if h.count > 0 {
 		h.count--
 		return h.list[h.count], true, nil
 	}
-	return GameState{}, false, fmt.Errorf("History is empty")
+	return Undo{}, false, fmt.Errorf("History is empty")
 }
 
-func (h *History) peek() GameState {
+func (h *History) peek() Undo {
 	return h.list[h.count-1]
 }
 
@@ -124,7 +134,7 @@ func (h *History) size() uint {
 	return h.count
 }
 
-func (h *History) getRef(index uint) *GameState {
+func (h *History) getRef(index uint) *Undo {
 	return &h.list[index]
 }
 
@@ -225,12 +235,15 @@ func (f *Fen) castling() error {
 	part := f.fenParts[f.currentPartIdx]
 	if len(part) <= 4 && len(part) > 0 {
 		for _, char := range part {
-			if char == 'K' || char == 'Q' || char == 'k' || char == 'q' {
-				piece, ok := CharPieceMap[char]
-				if ok {
-					f.board.State.CastlingRights |= int(piece)
-				}
-
+			switch char {
+			case 'K':
+				f.board.State.CastlingRights |= whiteKingside
+			case 'Q':
+				f.board.State.CastlingRights |= whiteQueenside
+			case 'k':
+				f.board.State.CastlingRights |= blackKingside
+			case 'q':
+				f.board.State.CastlingRights |= blackQueenside
 			}
 		}
 		return nil
@@ -325,11 +338,11 @@ func (board *Board) FenSetup(fen string) error {
 	for piece := P; piece <= K; piece++ {
 		tempBoard.OccupancyBitboards[white] |= f.board.Bitboards[piece]
 	}
-	
+
 	for piece := p; piece <= k; piece++ {
 		tempBoard.OccupancyBitboards[black] |= f.board.Bitboards[piece]
 	}
-	
+
 	tempBoard.OccupancyBitboards[both] |= tempBoard.OccupancyBitboards[white] | tempBoard.OccupancyBitboards[black]
 
 	*board = *tempBoard
@@ -419,6 +432,17 @@ func (board *Board) PieceAt(square Square) Piece {
 	return Zilch
 }
 
+func pieceSide(piece Piece) int {
+	switch {
+	case piece <= K:
+		return white
+	case piece <= k:
+		return black
+	default:
+		panic(fmt.Sprintf("invalid piece: %d", piece))
+	}
+}
+
 func (board *Board) getCastlingRightsString() string {
 	var rights string
 	if board.State.CastlingRights&whiteKingside != 0 {
@@ -438,25 +462,196 @@ func (board *Board) getCastlingRightsString() string {
 
 // checks occupancy bitb oard of both sides to verify if
 // the given square is occupied, or na-da.
-func (board *Board) Occupied (square Square) bool {
+func (board *Board) Occupied(square Square) bool {
 	return getBit(board.OccupancyBitboards[both], square) != 0
 }
 
 // checks occupancy bitb oard of opp side to verify if
 // the given square is occupied, or na-da.
-func (board *Board) OccupiedByOpp (square Square, side int) bool {
+func (board *Board) OccupiedByOpp(square Square, side int) bool {
 	if side > 2 {
 		panic("grrr grrrrr")
 	}
 	return getBit(board.OccupancyBitboards[side^1], square) != 0
 }
 
-// apparently a better mechaniosm is to store board state as a stack on board so
-// we could easily revert moves by basically popping off the stack-
-func (board *Board) Copy () Board {
-	return *board
+func (board *Board) snapshot() Undo {
+	return Undo{
+		State:              *board.State,
+		Bitboards:          board.Bitboards,
+		OccupancyBitboards: board.OccupancyBitboards,
+		PieceList:          board.PieceList,
+	}
 }
 
-func (board *Board) Takeback () *Board {
-	return board
+func (board *Board) UndoMove(move Move) {
+	state, worked, err := board.History.pop()
+	if !worked || err != nil {
+		panic(fmt.Sprintf("failed to pop undo state from history: %v", err))
+	}
+
+	board.Bitboards = state.Bitboards
+	board.OccupancyBitboards = state.OccupancyBitboards
+	board.PieceList = state.PieceList
+	*board.State = state.State
+}
+
+func (board *Board) MakeMove(move Move) {
+	sideToMove := board.State.SideToMove
+	from, to := move.getFrom(), move.getTo()
+	piece := board.PieceAt(from)
+
+	board.History.push(board.snapshot())
+	board.State.CapturedPiece = Zilch
+
+	if board.State.EnPassantSquare != none {
+		board.State.EnPassantSquare = none
+	}
+
+	if move.isCapture() || pieceToChar(piece) == "p" {
+		board.State.HalfMoveClock = 0
+	} else {
+		board.State.HalfMoveClock += 1
+	}
+
+	captured := board.PieceAt(to)
+
+	if captured != Zilch && !move.isCastling() {
+		board.removePiece(piece, from)
+
+		board.removePiece(captured, to)
+
+		board.addPiece(piece, to)
+
+		board.State.CapturedPiece = captured
+
+	} else if !move.isCastling() {
+		board.removePiece(piece, from)
+		board.addPiece(piece, to)
+	}
+
+	switch {
+	case move.isDoublePush():
+		board.State.EnPassantSquare = Square((int(from) + int(to)) / 2)
+	case move.isEnPassant():
+		var capturedPiece Piece
+
+		if sideToMove == white {
+			capturedPiece = p
+		} else {
+			capturedPiece = P
+		}
+		board.removePiece(capturedPiece, to^8)
+	case move.isCastling():
+		rookFrom, rookTo := getCastlingRookMove(to)
+		var rookPiece Piece
+		if sideToMove == white {
+			rookPiece = R
+		} else {
+			rookPiece = r
+		}
+
+		// remove the rook from its original square
+		board.removePiece(rookPiece, rookFrom)
+		// board.removePiece(board.PieceAt(rookFrom), rookFrom)
+
+		// remove the king
+		board.removePiece(piece, from)
+
+		// add the king to its new square
+		board.addPiece(piece, to)
+		board.addPiece(rookPiece, rookTo)
+
+	case move.isPromotion():
+		var promoPiece Piece = move.PromotionPiece(sideToMove)
+		board.removePiece(piece, to)
+		board.addPiece(promoPiece, to)
+	}
+
+	board.State.SideToMove ^= 1
+
+	if board.State.SideToMove == white {
+		board.State.FullmoveNumber += 1
+	}
+
+	board.State.CastlingRights &^= castlingRightMask(from) | castlingRightMask(to)
+}
+
+func (board *Board) IsLegal (move Move) bool {
+	if move.isNull() {
+		panic("Move cannot be null.")
+	}
+	stm := board.State.SideToMove
+	king := board.getKingSquare(stm)
+	from, to := move.getFrom(), move.getTo()
+
+	return false
+	// kingSquare := Square(slices.Index(board.PieceList[:], Square(K+side*6)))
+	// return board.isSquareAttacked(kingSquare, side)
+}
+
+func (board *Board) IsInCheck(side int) bool {
+	kingSquare := board.getKingSquare(side)
+	return board.isSquareAttacked(kingSquare, side)
+}
+
+func (board *Board) getKingSquare(side int) Square {
+	switch side {
+	case white:
+		return Square(getIndexOfLS1B(board.Bitboards[K] & board.OccupancyBitboards[white]))
+	case black:
+		return Square(getIndexOfLS1B(board.Bitboards[k] & board.OccupancyBitboards[black]))
+	}
+	return none
+}
+
+func castlingRightMask(square Square) int {
+	switch square {
+	case e1:
+		return whiteKingside | whiteQueenside
+	case a1:
+		return whiteQueenside
+	case h1:
+		return whiteKingside
+	case e8:
+		return blackKingside | blackQueenside
+	case a8:
+		return blackQueenside
+	case h8:
+		return blackKingside
+	default:
+		return 0
+	}
+}
+
+// returns the rook's starting and ending squares for a given castling move, based on the king's destination square.
+func getCastlingRookMove(kingTo Square) (Square, Square) {
+	switch kingTo {
+	case g1:
+		return h1, f1
+	case c1:
+		return a1, d1
+	case g8:
+		return h8, f8
+	case c8:
+		return a8, d8
+	default:
+		panic(fmt.Sprintf("Invalid castling move: kingTo=%d", kingTo))
+	}
+}
+
+func (board *Board) addPiece(piece Piece, square Square) {
+	side := pieceSide(piece)
+
+	board.Bitboards[piece] = setBit(board.Bitboards[piece], square)
+	board.OccupancyBitboards[side] = setBit(board.OccupancyBitboards[side], square)
+	board.OccupancyBitboards[both] = board.OccupancyBitboards[white] | board.OccupancyBitboards[black]
+}
+
+func (board *Board) removePiece(piece Piece, square Square) {
+	side := pieceSide(piece)
+
+	board.Bitboards[piece] = popBit(board.Bitboards[piece], square)
+	board.OccupancyBitboards[side] = popBit(board.OccupancyBitboards[side], square)
+	board.OccupancyBitboards[both] = board.OccupancyBitboards[white] | board.OccupancyBitboards[black]
 }

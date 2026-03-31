@@ -47,6 +47,7 @@ func (f MoveFlag) IsCastle() bool {
 	return f == KingCastle || f == QueenCastle
 }
 
+// 6 bits for from, and another 6 for to, then 4 for flag
 func NewMove(from Square, to Square, flag MoveFlag) Move {
 	// FLAG - TO - FROM....in that order
 	return Move(uint16(from) | (uint16(to) << 6) | (uint16(flag) << 12))
@@ -196,65 +197,65 @@ func (move Move) getEncoded() uint {
 // 	}
 // }
 
-func generatePawnCaptures(
-	board *Board,
-	bitboard uint64,
-	from, to Square,
-	attacks uint64,
-	direction int,
-	promotionRankStart, promotionRankEnd Square,
+// func generatePawnCaptures(
+// 	board *Board,
+// 	bitboard uint64,
+// 	from, to Square,
+// 	attacks uint64,
+// 	direction int,
+// 	promotionRankStart, promotionRankEnd Square,
 
-) {
-	// to := int(from) + direction
+// ) {
+// 	// to := int(from) + direction
 
-	attacks = pawnAttacks[board.State.SideToMove][from] & board.OccupancyBitboards[black]
+// 	attacks = pawnAttacks[board.State.SideToMove][from] & board.OccupancyBitboards[black]
 
-	for attacks != 0 {
-		targetSquare := getIndexOfLS1B(attacks)
-		if from >= promotionRankStart && from <= promotionRankEnd {
-			println("PAWN capture promotion:", BitboardSquares[from], BitboardSquares[targetSquare])
-		} else {
-			println("PAWN capture:", BitboardSquares[from], BitboardSquares[targetSquare])
-		}
-		attacks = popBit(attacks, Square(targetSquare))
-	}
-}
+// 	for attacks != 0 {
+// 		targetSquare := getIndexOfLS1B(attacks)
+// 		if from >= promotionRankStart && from <= promotionRankEnd {
+// 			println("PAWN capture promotion:", BitboardSquares[from], BitboardSquares[targetSquare])
+// 		} else {
+// 			println("PAWN capture:", BitboardSquares[from], BitboardSquares[targetSquare])
+// 		}
+// 		attacks = popBit(attacks, Square(targetSquare))
+// 	}
+// }
 
-func generateQuietPawnMoves(
-	board *Board,
-	bitboard uint64,
-	from Square,
-	direction int,
-	promotionRankStart, promotionRankEnd Square,
-	doublePushRankStart, doublePushRankEnd Square,
-	// moves *[]Move,
-) {
-	to := int(from) + direction
+// func generateQuietPawnMoves(
+// 	board *Board,
+// 	bitboard uint64,
+// 	from Square,
+// 	direction int,
+// 	promotionRankStart, promotionRankEnd Square,
+// 	doublePushRankStart, doublePushRankEnd Square,
+// 	// moves *[]Move,
+// ) {
+// 	to := int(from) + direction
 
-	if to < int(a8) || to > int(h1) {
-		bitboard = popBit(bitboard, from)
-		return
-	}
+// 	if to < int(a8) || to > int(h1) {
+// 		bitboard = popBit(bitboard, from)
+// 		return
+// 	}
 
-	// square gotta be empty
-	if getBit(board.OccupancyBitboards[both], Square(to)) != 0 {
-		bitboard = popBit(bitboard, from)
-		return
-	}
+// 	// square gotta be empty
+// 	if getBit(board.OccupancyBitboards[both], Square(to)) != 0 {
+// 		bitboard = popBit(bitboard, from)
+// 		return
+// 	}
 
-	// promotion
-	if from >= promotionRankStart && from <= promotionRankEnd {
-		println("PAWN promotion:", BitboardSquares[from], BitboardSquares[to])
-	} else {
-		println("PAWN push:", BitboardSquares[from], BitboardSquares[to])
+// 	// promotion
+// 	if from >= promotionRankStart && from <= promotionRankEnd {
+// 		println("PAWN promotion:", BitboardSquares[from], BitboardSquares[to])
+// 	} else {
+// 		println("PAWN push:", BitboardSquares[from], BitboardSquares[to])
 
-		// double push
-		doubleTo := to + direction
-		if from >= doublePushRankStart && from <= doublePushRankEnd &&
-			getBit(board.OccupancyBitboards[both], Square(doubleTo)) == 0 {
+// 		// double push
+// 		doubleTo := to + direction
+// 		if from >= doublePushRankStart && from <= doublePushRankEnd &&
+// 			getBit(board.OccupancyBitboards[both], Square(doubleTo)) == 0 {
 
-			println("2 step PAWN push:", BitboardSquares[from], BitboardSquares[doubleTo])
-		}
-	}
+// 			println("2 step PAWN push:", BitboardSquares[from], BitboardSquares[doubleTo])
+// 		}
+// 	}
 
-}
+// }
