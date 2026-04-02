@@ -57,11 +57,11 @@ func (move Move) DebugString(side int, board *Board) string {
 	from := BitboardSquares[move.getFrom()]
 	to := BitboardSquares[move.getTo()]
 	flag := move.getFlag()
-	
+
 	piece := board.PieceAt(move.getFrom())
 
 	str := from + to
-	
+
 	if piece != Zilch {
 		str += "  Piece: " + string(unicodePieces[piece])
 	}

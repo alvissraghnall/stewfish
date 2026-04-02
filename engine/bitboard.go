@@ -175,3 +175,7 @@ func popBit(bitboard uint64, square Square) uint64 {
 func toggleBit(bitboard uint64, square Square) uint64 {
 	return bitboard ^ (uint64(1) << square)
 }
+
+func checkBit(bitboard uint64, square Square) bool {
+    return (bitboard & (1 << square)) != 0
+}

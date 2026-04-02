@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/alvissraghnall/stewfish/engine"
 )
@@ -46,9 +47,15 @@ func main() {
 
 	ml := engine.NewMoveList()
 
+	start := time.Now()
 	board.GenerateMoves(ml)
-	
+
+	end := time.Now()
+
 	ml.Print(0, board)
+
+	fmt.Printf("Move generation took %s\n", end.Sub(start))
+
 }
 
 func PrintJSON(obj any) { 

@@ -577,7 +577,7 @@ func (board *Board) MakeMove(move Move) {
 	board.State.CastlingRights &^= castlingRightMask(from) | castlingRightMask(to)
 }
 
-func (board *Board) IsLegal (move Move) bool {
+func (board *Board) IsLegal(move Move) bool {
 	if move.isNull() {
 		panic("Move cannot be null.")
 	}
@@ -585,9 +585,26 @@ func (board *Board) IsLegal (move Move) bool {
 	king := board.getKingSquare(stm)
 	from, to := move.getFrom(), move.getTo()
 
+	if board.IsInCheck(board.State.SideToMove) && king != from {
+		if board.isInMultipleCheck(stm) {
+			return false
+		}
+
+		checker := board.getAttackersToSquare(king, board.State.SideToMove)
+		if !move.isEnPassant() && !(checkBit(checker | inBetween(king, Square(getIndexOfLS1B(checker))), to)) {
+			return false
+		}
+
+	}
+
+	// .............
 	return false
-	// kingSquare := Square(slices.Index(board.PieceList[:], Square(K+side*6)))
-	// return board.isSquareAttacked(kingSquare, side)
+}
+
+func (board *Board) isInMultipleCheck(side int) bool {
+	kingSquare := board.getKingSquare(side)
+	attackers := board.getAttackersToSquare(kingSquare, side)
+	return attackers != 0 && (attackers&(attackers-1)) != 0
 }
 
 func (board *Board) IsInCheck(side int) bool {

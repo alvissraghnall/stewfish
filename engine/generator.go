@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+
 	"github.com/alvissraghnall/stewfish/util"
 )
 
@@ -119,12 +120,13 @@ func initMagicNumbers() {
 		offset += uint32(entry.size)
 	}
 	fmt.Printf("Total Rook Table Size: %d\n\n", offset)
+	rookOffset := offset
 
 	fmt.Println("// Bishop Magics")
 	offset = 0
 	for sq := range 64 {
 		entry := findMagicNumber(Square(sq), Bishop, rand)
-		entry.offset = offset
+		entry.offset = rookOffset + offset
 		bishopMagics[sq] = entry
 
 		fmt.Printf("{ mask: 0x%016X, magic: 0x%016X, shift: %d, offset: %d },\n",

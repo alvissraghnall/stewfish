@@ -142,70 +142,70 @@ var rookMagics [64]MagicEntry = [64]MagicEntry{
 const RookMapSize uint = 102400
 
 var bishopMagics [64]MagicEntry = [64]MagicEntry{
-	{mask: 0x0040201008040200, magic: 0x0020099401828600, shift: 58, offset: 0},
-	{mask: 0x0000402010080400, magic: 0x0110040800484201, shift: 59, offset: 64},
-	{mask: 0x0000004020100A00, magic: 0x00210A2408400000, shift: 59, offset: 96},
-	{mask: 0x0000000040221400, magic: 0x0004040888C08544, shift: 59, offset: 128},
-	{mask: 0x0000000002442800, magic: 0x0082121040080000, shift: 59, offset: 160},
-	{mask: 0x0000000204085000, magic: 0x0401012840380008, shift: 59, offset: 192},
-	{mask: 0x0000020408102000, magic: 0x4E03081110890208, shift: 59, offset: 224},
-	{mask: 0x0002040810204000, magic: 0x080A002101182104, shift: 58, offset: 256},
-	{mask: 0x0020100804020000, magic: 0x04200A2004140040, shift: 59, offset: 320},
-	{mask: 0x0040201008040000, magic: 0x082A041425940510, shift: 59, offset: 352},
-	{mask: 0x00004020100A0000, magic: 0x0800042102120000, shift: 59, offset: 384},
-	{mask: 0x0000004022140000, magic: 0x2012611041000400, shift: 59, offset: 416},
-	{mask: 0x0000000244280000, magic: 0x4840040420100520, shift: 59, offset: 448},
-	{mask: 0x0000020408500000, magic: 0x0030811002100200, shift: 59, offset: 480},
-	{mask: 0x0002040810200000, magic: 0x2100040148080440, shift: 59, offset: 512},
-	{mask: 0x0004081020400000, magic: 0x8000002888041004, shift: 59, offset: 544},
-	{mask: 0x0010080402000200, magic: 0x015D001090108108, shift: 59, offset: 576},
-	{mask: 0x0020100804000400, magic: 0x0143081004011400, shift: 59, offset: 608},
-	{mask: 0x004020100A000A00, magic: 0xC008050C18012208, shift: 57, offset: 640},
-	{mask: 0x0000402214001400, magic: 0x0028000082810180, shift: 57, offset: 768},
-	{mask: 0x0000024428002800, magic: 0x2024200202010400, shift: 57, offset: 896},
-	{mask: 0x0002040850005000, magic: 0x0A02000900490460, shift: 57, offset: 1024},
-	{mask: 0x0004081020002000, magic: 0x0600414202422000, shift: 59, offset: 1152},
-	{mask: 0x0008102040004000, magic: 0x0005009201110180, shift: 59, offset: 1184},
-	{mask: 0x0008040200020400, magic: 0x02CB502068A01804, shift: 59, offset: 1216},
-	{mask: 0x0010080400040800, magic: 0x0410101104041080, shift: 59, offset: 1248},
-	{mask: 0x0020100A000A1000, magic: 0x000C441908002C00, shift: 57, offset: 1280},
-	{mask: 0x0040221400142200, magic: 0x4814080010082008, shift: 55, offset: 1408},
-	{mask: 0x0002442800284400, magic: 0x2109001091004004, shift: 55, offset: 1920},
-	{mask: 0x0004085000500800, magic: 0x30008200810100A2, shift: 57, offset: 2432},
-	{mask: 0x0008102000201000, magic: 0x000C20410D080290, shift: 59, offset: 2560},
-	{mask: 0x0010204000402000, magic: 0x0408405005040200, shift: 59, offset: 2592},
-	{mask: 0x0004020002040800, magic: 0x010410484104A080, shift: 59, offset: 2624},
-	{mask: 0x0008040004081000, magic: 0x0024210400208400, shift: 59, offset: 2656},
-	{mask: 0x00100A000A102000, magic: 0x0088404040080201, shift: 57, offset: 2688},
-	{mask: 0x0022140014224000, magic: 0x4280020080080080, shift: 55, offset: 2816},
-	{mask: 0x0044280028440200, magic: 0x8404010200140048, shift: 55, offset: 3328},
-	{mask: 0x0008500050080400, magic: 0x48A1102080010040, shift: 57, offset: 3840},
-	{mask: 0x0010200020100800, magic: 0x000124010000880E, shift: 59, offset: 3968},
-	{mask: 0x0020400040201000, magic: 0x2001040118802100, shift: 59, offset: 4000},
-	{mask: 0x0002000204081000, magic: 0x08A2421004044001, shift: 59, offset: 4032},
-	{mask: 0x0004000408102000, magic: 0x0004021A10131209, shift: 59, offset: 4064},
-	{mask: 0x000A000A10204000, magic: 0x2410404020821002, shift: 57, offset: 4096},
-	{mask: 0x0014001422400000, magic: 0x0000002018014100, shift: 57, offset: 4224},
-	{mask: 0x0028002844020000, magic: 0x4391408810401602, shift: 57, offset: 4352},
-	{mask: 0x0050005008040200, magic: 0x0041090509025201, shift: 57, offset: 4480},
-	{mask: 0x0020002010080400, magic: 0x2008010806A00211, shift: 59, offset: 4608},
-	{mask: 0x0040004020100800, magic: 0x208128089C800100, shift: 59, offset: 4640},
-	{mask: 0x0000020408102000, magic: 0x010484B410C01440, shift: 59, offset: 4672},
-	{mask: 0x0000040810204000, magic: 0x0006010118824004, shift: 59, offset: 4704},
-	{mask: 0x00000A1020400000, magic: 0x00000A0101210100, shift: 59, offset: 4736},
-	{mask: 0x0000142240000000, magic: 0x0004182104880002, shift: 59, offset: 4768},
-	{mask: 0x0000284402000000, magic: 0x00800C0420822000, shift: 59, offset: 4800},
-	{mask: 0x0000500804020000, magic: 0x1220400204210000, shift: 59, offset: 4832},
-	{mask: 0x0000201008040200, magic: 0xE005155002020060, shift: 59, offset: 4864},
-	{mask: 0x0000402010080400, magic: 0x0008424802002000, shift: 59, offset: 4896},
-	{mask: 0x0002040810204000, magic: 0x0000140202100400, shift: 58, offset: 4928},
-	{mask: 0x0004081020400000, magic: 0x04002682080A4280, shift: 59, offset: 4992},
-	{mask: 0x000A102040000000, magic: 0x24C0012100824100, shift: 59, offset: 5024},
-	{mask: 0x0014224000000000, magic: 0xC050845502104410, shift: 59, offset: 5056},
-	{mask: 0x0028440200000000, magic: 0x0000808A13020200, shift: 59, offset: 5088},
-	{mask: 0x0050080402000000, magic: 0x0000118D60081640, shift: 59, offset: 5120},
-	{mask: 0x0020100804020000, magic: 0x0028483304480202, shift: 59, offset: 5152},
-	{mask: 0x0040201008040200, magic: 0x08C0102252819288, shift: 58, offset: 5184},
+	{mask: 0x0040201008040200, magic: 0x0020099401828600, shift: 58, offset: 102400},
+	{mask: 0x0000402010080400, magic: 0x0110040800484201, shift: 59, offset: 102464},
+	{mask: 0x0000004020100A00, magic: 0x00210A2408400000, shift: 59, offset: 102496},
+	{mask: 0x0000000040221400, magic: 0x0004040888C08544, shift: 59, offset: 102528},
+	{mask: 0x0000000002442800, magic: 0x0082121040080000, shift: 59, offset: 102560},
+	{mask: 0x0000000204085000, magic: 0x0401012840380008, shift: 59, offset: 102592},
+	{mask: 0x0000020408102000, magic: 0x4E03081110890208, shift: 59, offset: 102624},
+	{mask: 0x0002040810204000, magic: 0x080A002101182104, shift: 58, offset: 102656},
+	{mask: 0x0020100804020000, magic: 0x04200A2004140040, shift: 59, offset: 102720},
+	{mask: 0x0040201008040000, magic: 0x082A041425940510, shift: 59, offset: 102752},
+	{mask: 0x00004020100A0000, magic: 0x0800042102120000, shift: 59, offset: 102784},
+	{mask: 0x0000004022140000, magic: 0x2012611041000400, shift: 59, offset: 102816},
+	{mask: 0x0000000244280000, magic: 0x4840040420100520, shift: 59, offset: 102848},
+	{mask: 0x0000020408500000, magic: 0x0030811002100200, shift: 59, offset: 102880},
+	{mask: 0x0002040810200000, magic: 0x2100040148080440, shift: 59, offset: 102912},
+	{mask: 0x0004081020400000, magic: 0x8000002888041004, shift: 59, offset: 102944},
+	{mask: 0x0010080402000200, magic: 0x015D001090108108, shift: 59, offset: 102976},
+	{mask: 0x0020100804000400, magic: 0x0143081004011400, shift: 59, offset: 103008},
+	{mask: 0x004020100A000A00, magic: 0xC008050C18012208, shift: 57, offset: 103040},
+	{mask: 0x0000402214001400, magic: 0x0028000082810180, shift: 57, offset: 103168},
+	{mask: 0x0000024428002800, magic: 0x2024200202010400, shift: 57, offset: 103296},
+	{mask: 0x0002040850005000, magic: 0x0A02000900490460, shift: 57, offset: 103424},
+	{mask: 0x0004081020002000, magic: 0x0600414202422000, shift: 59, offset: 103552},
+	{mask: 0x0008102040004000, magic: 0x0005009201110180, shift: 59, offset: 103584},
+	{mask: 0x0008040200020400, magic: 0x02CB502068A01804, shift: 59, offset: 103616},
+	{mask: 0x0010080400040800, magic: 0x0410101104041080, shift: 59, offset: 103648},
+	{mask: 0x0020100A000A1000, magic: 0x000C441908002C00, shift: 57, offset: 103680},
+	{mask: 0x0040221400142200, magic: 0x4814080010082008, shift: 55, offset: 103808},
+	{mask: 0x0002442800284400, magic: 0x2109001091004004, shift: 55, offset: 104320},
+	{mask: 0x0004085000500800, magic: 0x30008200810100A2, shift: 57, offset: 104832},
+	{mask: 0x0008102000201000, magic: 0x000C20410D080290, shift: 59, offset: 104960},
+	{mask: 0x0010204000402000, magic: 0x0408405005040200, shift: 59, offset: 104992},
+	{mask: 0x0004020002040800, magic: 0x010410484104A080, shift: 59, offset: 105024},
+	{mask: 0x0008040004081000, magic: 0x0024210400208400, shift: 59, offset: 105056},
+	{mask: 0x00100A000A102000, magic: 0x0088404040080201, shift: 57, offset: 105088},
+	{mask: 0x0022140014224000, magic: 0x4280020080080080, shift: 55, offset: 105216},
+	{mask: 0x0044280028440200, magic: 0x8404010200140048, shift: 55, offset: 105728},
+	{mask: 0x0008500050080400, magic: 0x48A1102080010040, shift: 57, offset: 106240},
+	{mask: 0x0010200020100800, magic: 0x000124010000880E, shift: 59, offset: 106368},
+	{mask: 0x0020400040201000, magic: 0x2001040118802100, shift: 59, offset: 106400},
+	{mask: 0x0002000204081000, magic: 0x08A2421004044001, shift: 59, offset: 106432},
+	{mask: 0x0004000408102000, magic: 0x0004021A10131209, shift: 59, offset: 106464},
+	{mask: 0x000A000A10204000, magic: 0x2410404020821002, shift: 57, offset: 106496},
+	{mask: 0x0014001422400000, magic: 0x0000002018014100, shift: 57, offset: 106624},
+	{mask: 0x0028002844020000, magic: 0x4391408810401602, shift: 57, offset: 106752},
+	{mask: 0x0050005008040200, magic: 0x0041090509025201, shift: 57, offset: 106880},
+	{mask: 0x0020002010080400, magic: 0x2008010806A00211, shift: 59, offset: 107008},
+	{mask: 0x0040004020100800, magic: 0x208128089C800100, shift: 59, offset: 107040},
+	{mask: 0x0000020408102000, magic: 0x010484B410C01440, shift: 59, offset: 107072},
+	{mask: 0x0000040810204000, magic: 0x0006010118824004, shift: 59, offset: 107104},
+	{mask: 0x00000A1020400000, magic: 0x00000A0101210100, shift: 59, offset: 107136},
+	{mask: 0x0000142240000000, magic: 0x0004182104880002, shift: 59, offset: 107168},
+	{mask: 0x0000284402000000, magic: 0x00800C0420822000, shift: 59, offset: 107200},
+	{mask: 0x0000500804020000, magic: 0x1220400204210000, shift: 59, offset: 107232},
+	{mask: 0x0000201008040200, magic: 0xE005155002020060, shift: 59, offset: 107264},
+	{mask: 0x0000402010080400, magic: 0x0008424802002000, shift: 59, offset: 107296},
+	{mask: 0x0002040810204000, magic: 0x0000140202100400, shift: 58, offset: 107328},
+	{mask: 0x0004081020400000, magic: 0x04002682080A4280, shift: 59, offset: 107392},
+	{mask: 0x000A102040000000, magic: 0x24C0012100824100, shift: 59, offset: 107424},
+	{mask: 0x0014224000000000, magic: 0xC050845502104410, shift: 59, offset: 107456},
+	{mask: 0x0028440200000000, magic: 0x0000808A13020200, shift: 59, offset: 107488},
+	{mask: 0x0050080402000000, magic: 0x0000118D60081640, shift: 59, offset: 107520},
+	{mask: 0x0020100804020000, magic: 0x0028483304480202, shift: 59, offset: 107552},
+	{mask: 0x0040201008040200, magic: 0x08C0102252819288, shift: 58, offset: 107584},
 }
 
 const BishopMapSize uint = 5248
@@ -587,6 +587,9 @@ func initSliderAttacks(square Square, piece SliderPiece, magic MagicEntry) {
 }
 
 func initSliderTables() {
+	// Offsets for bishop magic entries are stored relative to the bishop table start.
+	// The shared AttackTable keeps rook entries first, then bishop entries.
+	
 	for sq := range 64 {
 		initSliderAttacks(Square(sq), Rook, rookMagics[sq])
 		initSliderAttacks(Square(sq), Bishop, bishopMagics[sq])
@@ -627,4 +630,26 @@ func (board *Board) isSquareAttacked(sq Square, side int) bool {
 	}
 
 	return false
+}
+
+func (board *Board) getAttackersToSquare(sq Square, side int) uint64 {
+	var attackers uint64 = 0
+
+	if side == white {
+		attackers |= pawnAttacks[black][sq] & board.Bitboards[P]
+		attackers |= knightAttacks[sq] & board.Bitboards[N]
+		attackers |= kingAttacks[sq] & board.Bitboards[K]
+		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], bishopMagics[sq]) & board.Bitboards[B]
+		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], rookMagics[sq]) & board.Bitboards[R]
+		attackers |= GetQueenAttacks(sq, board.OccupancyBitboards[both]) & board.Bitboards[Q]
+	} else {
+		attackers |= pawnAttacks[white][sq] & board.Bitboards[p]
+		attackers |= knightAttacks[sq] & board.Bitboards[n]
+		attackers |= kingAttacks[sq] & board.Bitboards[k]
+		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], bishopMagics[sq]) & board.Bitboards[b]
+		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], rookMagics[sq]) & board.Bitboards[r]
+		attackers |= GetQueenAttacks(sq, board.OccupancyBitboards[both]) & board.Bitboards[q]
+	}
+
+	return attackers
 }
