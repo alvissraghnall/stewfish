@@ -53,6 +53,19 @@ func NewMove(from Square, to Square, flag MoveFlag) Move {
 	return Move(uint16(from) | (uint16(to) << 6) | (uint16(flag) << 12))
 }
 
+func (move Move) String() string {
+	from := BitboardSquares[move.getFrom()]
+	to := BitboardSquares[move.getTo()]
+
+	str := from + to
+
+	if move.isPromotion() {
+		str += string(promotedPieces[move.PromotionPiece(white)])
+	}
+
+	return str
+}
+
 func (move Move) DebugString(side int, board *Board) string {
 	from := BitboardSquares[move.getFrom()]
 	to := BitboardSquares[move.getTo()]

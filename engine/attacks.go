@@ -589,7 +589,7 @@ func initSliderAttacks(square Square, piece SliderPiece, magic MagicEntry) {
 func initSliderTables() {
 	// Offsets for bishop magic entries are stored relative to the bishop table start.
 	// The shared AttackTable keeps rook entries first, then bishop entries.
-	
+
 	for sq := range 64 {
 		initSliderAttacks(Square(sq), Rook, rookMagics[sq])
 		initSliderAttacks(Square(sq), Bishop, bishopMagics[sq])
@@ -614,41 +614,37 @@ func GetAttacks(sq Square, occupancy uint64, magicEntry MagicEntry) uint64 {
 }
 
 func (board *Board) isSquareAttacked(sq Square, side int) bool {
-	if (side == white && (pawnAttacks[black][sq]&board.Bitboards[P]) != 0) ||
-		(side == black && (pawnAttacks[white][sq]&board.Bitboards[p]) != 0) ||
-		(side == white && (knightAttacks[sq]&board.Bitboards[N]) != 0) ||
-		(side == black && (knightAttacks[sq]&board.Bitboards[n]) != 0) ||
-		(side == white && (kingAttacks[sq]&board.Bitboards[K]) != 0) ||
-		(side == black && (kingAttacks[sq]&board.Bitboards[k]) != 0) ||
-		(side == white && (GetAttacks(sq, board.OccupancyBitboards[both], bishopMagics[sq])&board.Bitboards[B]) != 0) ||
-		(side == black && (GetAttacks(sq, board.OccupancyBitboards[both], bishopMagics[sq])&board.Bitboards[b]) != 0) ||
-		(side == white && (GetAttacks(sq, board.OccupancyBitboards[both], rookMagics[sq])&board.Bitboards[R]) != 0) ||
-		(side == black && (GetAttacks(sq, board.OccupancyBitboards[both], rookMagics[sq])&board.Bitboards[r]) != 0) ||
-		(side == white && (GetQueenAttacks(sq, board.OccupancyBitboards[both])&board.Bitboards[Q]) != 0) ||
-		(side == black && (GetQueenAttacks(sq, board.OccupancyBitboards[both])&board.Bitboards[q]) != 0) {
-		return true
+	occ := board.OccupancyBitboards[both]
+	if side == white {
+		return (pawnAttacks[black][sq]&board.Bitboards[P]) != 0 ||
+			(knightAttacks[sq]&board.Bitboards[N]) != 0 ||
+			(kingAttacks[sq]&board.Bitboards[K]) != 0 ||
+			(GetAttacks(sq, occ, bishopMagics[sq])&(board.Bitboards[B]|board.Bitboards[Q])) != 0 ||
+			(GetAttacks(sq, occ, rookMagics[sq])&(board.Bitboards[R]|board.Bitboards[Q])) != 0
 	}
-
-	return false
+	return (pawnAttacks[white][sq]&board.Bitboards[p]) != 0 ||
+		(knightAttacks[sq]&board.Bitboards[n]) != 0 ||
+		(kingAttacks[sq]&board.Bitboards[k]) != 0 ||
+		(GetAttacks(sq, occ, bishopMagics[sq])&(board.Bitboards[b]|board.Bitboards[q])) != 0 ||
+		(GetAttacks(sq, occ, rookMagics[sq])&(board.Bitboards[r]|board.Bitboards[q])) != 0
 }
 
 func (board *Board) getAttackersToSquare(sq Square, side int) uint64 {
 	var attackers uint64 = 0
+	occ := board.OccupancyBitboards[both]
 
 	if side == white {
 		attackers |= pawnAttacks[black][sq] & board.Bitboards[P]
 		attackers |= knightAttacks[sq] & board.Bitboards[N]
 		attackers |= kingAttacks[sq] & board.Bitboards[K]
-		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], bishopMagics[sq]) & board.Bitboards[B]
-		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], rookMagics[sq]) & board.Bitboards[R]
-		attackers |= GetQueenAttacks(sq, board.OccupancyBitboards[both]) & board.Bitboards[Q]
+		attackers |= GetAttacks(sq, occ, bishopMagics[sq]) & (board.Bitboards[B] | board.Bitboards[Q])
+		attackers |= GetAttacks(sq, occ, rookMagics[sq]) & (board.Bitboards[R] | board.Bitboards[Q])
 	} else {
 		attackers |= pawnAttacks[white][sq] & board.Bitboards[p]
 		attackers |= knightAttacks[sq] & board.Bitboards[n]
 		attackers |= kingAttacks[sq] & board.Bitboards[k]
-		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], bishopMagics[sq]) & board.Bitboards[b]
-		attackers |= GetAttacks(sq, board.OccupancyBitboards[both], rookMagics[sq]) & board.Bitboards[r]
-		attackers |= GetQueenAttacks(sq, board.OccupancyBitboards[both]) & board.Bitboards[q]
+		attackers |= GetAttacks(sq, occ, bishopMagics[sq]) & (board.Bitboards[b] | board.Bitboards[q])
+		attackers |= GetAttacks(sq, occ, rookMagics[sq]) & (board.Bitboards[r] | board.Bitboards[q])
 	}
 
 	return attackers

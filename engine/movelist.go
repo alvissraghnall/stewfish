@@ -1,6 +1,8 @@
 package engine
 
-import "github.com/alvissraghnall/stewfish/internal"
+import (
+	"github.com/alvissraghnall/stewfish/internal"
+)
 
 type MoveEntry struct {
 	score int
@@ -39,6 +41,27 @@ func (list *MoveList) Slice() []MoveEntry {
 	return list.data.Slice()
 }
 
+func (list *MoveList) SliceMoves() []Move {
+	moves := make([]Move, list.data.Len())
+	for i, entry := range list.data.Slice() {
+		moves[i] = entry.move
+	}
+	return moves
+}
+
+func (list *MoveList) Reset() {
+	list.data.Clear()
+}
+
+func (list *MoveList) Get(index int) MoveEntry {
+	return list.data.Get(index)
+}
+
+func (list *MoveList) GetMove (index int) Move {
+	entry := list.data.Get(index)
+	return entry.move
+}
+
 func (ml *MoveList) Print(side int, board *Board) {
 	var blackMoves, whiteMoves int
 	for _, move := range ml.Slice() {
@@ -63,6 +86,20 @@ func (list *MoveList) PushSetwise(from Square, toBB uint64, flag MoveFlag) {
 		to := getIndexOfLS1B(toBB)
 		list.Add(from, Square(to), flag)
 		toBB = popBit(toBB, Square(to))
+	}
+}
+
+
+func (list *MoveList) PushSetwiseNoFlag(from Square, toBB uint64) {
+	for toBB != 0 {
+		to := Square(getIndexOfLS1B(toBB))
+		flag := Normal
+		// If there are any pieces on the target square, it's a capture
+		if list.data.Len() > 0 {
+			flag = Capture
+		}
+		list.Add(from, to, flag)
+		toBB = popBit(toBB, to)
 	}
 }
 

@@ -85,7 +85,7 @@ type Undo struct {
 	State              GameState
 	Bitboards          [12]uint64
 	OccupancyBitboards [3]uint64
-	PieceList          [64]Square
+	PieceList          [64]Piece
 }
 
 type History struct {
@@ -160,16 +160,20 @@ type Board struct {
 	OccupancyBitboards [3]uint64
 	State              *GameState
 	History            *History
-	PieceList          [64]Square
+	PieceList          [64]Piece
 }
 
 func NewBoard() *Board {
-	return &Board{
+	b := &Board{
 		Bitboards:          [12]uint64{},
 		OccupancyBitboards: [3]uint64{},
 		State:              NewGameState(),
 		History:            NewHistory(),
 	}
+	for i := range 64 {
+		b.PieceList[i] = Zilch
+	}
+	return b
 }
 
 func (f *Fen) pieces() error {
@@ -198,6 +202,7 @@ func (f *Fen) pieces() error {
 			if ok {
 				square := Square(rank*8 + file)
 				f.board.Bitboards[piece] = setBit(f.board.Bitboards[piece], square)
+				f.board.PieceList[square] = piece
 				file++
 			}
 		}
@@ -424,12 +429,7 @@ func (board *Board) PrintBoardWithPieces() {
 }
 
 func (board *Board) PieceAt(square Square) Piece {
-	for piece := range k + 1 {
-		if getBit(board.Bitboards[piece], square) == 1 {
-			return piece
-		}
-	}
-	return Zilch
+	return board.PieceList[square]
 }
 
 func pieceSide(piece Piece) int {
@@ -581,43 +581,31 @@ func (board *Board) IsLegal(move Move) bool {
 	if move.isNull() {
 		panic("Move cannot be null.")
 	}
-	stm := board.State.SideToMove
-	king := board.getKingSquare(stm)
-	from, to := move.getFrom(), move.getTo()
 
-	if board.IsInCheck(board.State.SideToMove) && king != from {
-		if board.isInMultipleCheck(stm) {
-			return false
-		}
+	board.MakeMove(move)
+	isLegal := !board.IsInCheck(board.State.SideToMove ^ 1)
+	board.UndoMove(move)
 
-		checker := board.getAttackersToSquare(king, board.State.SideToMove)
-		if !move.isEnPassant() && !(checkBit(checker | inBetween(king, Square(getIndexOfLS1B(checker))), to)) {
-			return false
-		}
-
-	}
-
-	// .............
-	return false
+	return isLegal
 }
 
 func (board *Board) isInMultipleCheck(side int) bool {
 	kingSquare := board.getKingSquare(side)
-	attackers := board.getAttackersToSquare(kingSquare, side)
+	attackers := board.getAttackersToSquare(kingSquare, side^1)
 	return attackers != 0 && (attackers&(attackers-1)) != 0
 }
 
 func (board *Board) IsInCheck(side int) bool {
 	kingSquare := board.getKingSquare(side)
-	return board.isSquareAttacked(kingSquare, side)
+	return board.isSquareAttacked(kingSquare, side^1)
 }
 
 func (board *Board) getKingSquare(side int) Square {
 	switch side {
 	case white:
-		return Square(getIndexOfLS1B(board.Bitboards[K] & board.OccupancyBitboards[white]))
+		return Square(getIndexOfLS1B(board.Bitboards[K]))
 	case black:
-		return Square(getIndexOfLS1B(board.Bitboards[k] & board.OccupancyBitboards[black]))
+		return Square(getIndexOfLS1B(board.Bitboards[k]))
 	}
 	return none
 }
@@ -663,6 +651,7 @@ func (board *Board) addPiece(piece Piece, square Square) {
 	board.Bitboards[piece] = setBit(board.Bitboards[piece], square)
 	board.OccupancyBitboards[side] = setBit(board.OccupancyBitboards[side], square)
 	board.OccupancyBitboards[both] = board.OccupancyBitboards[white] | board.OccupancyBitboards[black]
+	board.PieceList[square] = piece
 }
 
 func (board *Board) removePiece(piece Piece, square Square) {
@@ -671,4 +660,5 @@ func (board *Board) removePiece(piece Piece, square Square) {
 	board.Bitboards[piece] = popBit(board.Bitboards[piece], square)
 	board.OccupancyBitboards[side] = popBit(board.OccupancyBitboards[side], square)
 	board.OccupancyBitboards[both] = board.OccupancyBitboards[white] | board.OccupancyBitboards[black]
+	board.PieceList[square] = Zilch
 }

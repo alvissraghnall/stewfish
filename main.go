@@ -8,7 +8,7 @@ import (
 	"github.com/alvissraghnall/stewfish/engine"
 )
 
-func init () {
+func init() {
 	engine.Init()
 }
 
@@ -38,17 +38,17 @@ func main() {
 	// fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpP/R3K2R b KQkq - 0 1 "
 
 	var board *engine.Board = engine.NewBoard()
-	
+
 	err := board.FenSetup(fen)
 	if err != nil {
 		panic(err)
 	}
 	board.PrintBoardWithPieces()
 
-	ml := engine.NewMoveList()
+	var ml engine.MoveList
 
 	start := time.Now()
-	board.GenerateMoves(ml)
+	board.GenerateMoves(&ml)
 
 	end := time.Now()
 
@@ -58,7 +58,7 @@ func main() {
 
 }
 
-func PrintJSON(obj any) { 
-	bytes, _ := json.MarshalIndent(obj, "\t", "\t") 
-	fmt.Println(string(bytes)) 
+func PrintJSON(obj any) {
+	bytes, _ := json.MarshalIndent(obj, "\t", "\t")
+	fmt.Println(string(bytes))
 }
