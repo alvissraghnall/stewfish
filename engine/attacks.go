@@ -36,6 +36,7 @@ const (
 var rng *rand.Rand
 var xorShift65Rand util.XORShift
 
+// coordinates corresponding to squares, indexed by bit index
 var BitboardSquares = [64]string{
 	"a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
 	"a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
@@ -227,6 +228,7 @@ func init() {
 	xorShift65Rand = util.NewRandom(0xFFAAB58C5833FE89)
 }
 
+// 
 func maskPawnAttacks(side int, square Square) uint64 {
 	var attacks uint64 = 0
 
@@ -613,6 +615,8 @@ func GetAttacks(sq Square, occupancy uint64, magicEntry MagicEntry) uint64 {
 	return AttackTable[magicEntry.offset+uint32(index)]
 }
 
+// 'side' is the side of the potential attacker (0 for white, 1 for black)
+// so if we want to check if a square is attacked by white pieces, we pass in 0 (white) for 'side'
 func (board *Board) isSquareAttacked(sq Square, side int) bool {
 	occ := board.OccupancyBitboards[both]
 	if side == white {

@@ -118,7 +118,7 @@ func TestGenerateMovesStartingPosition(t *testing.T) {
 func perfTest(board *engine.Board, depth int) {
 	divider := strings.Repeat("-", 75)
 	fmt.Println(divider)
-	fmt.Printf("%5s | %15s | %12s | %15s | %15s\n", "Index", "Move", "Nodes", "Elapsed", "NPS")
+	fmt.Printf("%5s | %15s | %12s | %15s | %15s\n", "Index", "Move", "Nodes", "Elapsed", "MNPS")
 	fmt.Println(divider)
 
 	start := time.Now()
@@ -136,24 +136,24 @@ func perfTest(board *engine.Board, depth int) {
 		board.UndoMove(move)
 
 		elapsed := time.Since(now)
-		nps := 0.0
+		mnps := 0.0
 		if elapsed.Seconds() > 0 {
-			nps = float64(count) / elapsed.Seconds()
+			mnps = float64(count) / elapsed.Seconds() / 1e6
 		}
 
-		fmt.Printf("%5d | %15s | %12d | %15s | %15.2f\n", index, move.DebugString(board.State.SideToMove, board), count, elapsed, nps)
+		fmt.Printf("%5d | %15s | %12d | %15s | %15.2f\n", index, move.DebugString(board.State.SideToMove, board), count, elapsed, mnps)
 
 		index++
 	}
 
 	end := time.Since(start)
-	nps := 0.0
+	mnps := 0.0
 	if end.Seconds() > 0 {
-		nps = float64(nodes) / end.Seconds()
+		mnps = float64(nodes) / end.Seconds() / 1e6
 	}
 
 	fmt.Println(divider)
-	fmt.Printf("%5s | %15s | %12d | %15s | %15.2f\n", "", "Total", nodes, end, nps)
+	fmt.Printf("%5s | %15s | %12d | %15s | %15.2f\n", "", "Total", nodes, end, mnps)
 	fmt.Println(divider)
 
 }

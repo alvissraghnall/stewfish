@@ -597,6 +597,9 @@ func (board *Board) isInMultipleCheck(side int) bool {
 
 func (board *Board) IsInCheck(side int) bool {
 	kingSquare := board.getKingSquare(side)
+	if kingSquare == none {
+		return false
+	}
 	return board.isSquareAttacked(kingSquare, side^1)
 }
 
