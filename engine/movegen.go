@@ -6,7 +6,7 @@ func (board *Board) GenerateMoves(ml *MoveList) {
 	ownPieces := board.OccupancyBitboards[side]
 	oppPieces := board.OccupancyBitboards[side^1]
 
-	target := uint64(0xFFFFFFFFFFFFFFFF)
+	target := uint64(0xFFFF_FFFF_FFFF_FFFF)
 	if board.IsInCheck(side) {
 		if board.isInMultipleCheck(side) {
 			target = 0

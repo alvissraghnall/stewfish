@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/alvissraghnall/stewfish/engine"
+	"github.com/alvissraghnall/stewfish/internal"
 )
 
 func init() {
@@ -56,6 +57,7 @@ func main() {
 
 	fmt.Printf("Move generation took %s\n", end.Sub(start))
 
+	fmt.Println("Version: ", internal.Version)
 }
 
 func PrintJSON(obj any) {

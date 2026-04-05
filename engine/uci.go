@@ -1,9 +1,32 @@
 package engine
 
 import (
+	"bufio"
 	"fmt"
+	"log"
+	"os"
 	"strings"
+
+	"github.com/alvissraghnall/stewfish/internal"
 )
+
+type Mode uint8
+
+const (
+	Uci Mode = iota
+	Cli
+)
+
+type Context struct {
+	status *internal.UciStatus
+	board  *Board
+}
+
+func NewContext() *Context {
+	return &Context{
+		status: internal.NewStatus(),
+	}
+}
 
 type UciParseError struct {
 	Part    string
@@ -14,6 +37,51 @@ func (e *UciParseError) Error() string {
 	return fmt.Sprintf("Part %s: %s", e.Part, e.Message)
 }
 
+type UCICommand struct {
+	Name  string
+	Args  map[string]string
+	Moves []Move
+}
+
+func newUCICommand(name string) UCICommand {
+	return UCICommand{
+		Name:  name,
+		Args:  make(map[string]string),
+		Moves: []Move{},
+	}
+}
+
+func ParseUCI(line string, ctx *Context) UCICommand {
+	tokens := strings.Fields(line)
+
+	if len(tokens) == 0 {
+		return newUCICommand("noop")
+	}
+
+	cmdName := tokens[0]
+	cmd := newUCICommand(cmdName)
+
+	// basic commands with no args
+	switch cmdName {
+	case "uci", "ucinewgame", "stop", "quit", "isready":
+		return cmd
+	}
+
+	// complex commands requiring argument parsing
+	// we pass 'tokens[1:]' which is just the arguments
+	args := tokens[1:]
+
+	switch cmdName {
+	case "position":
+		parsePositionArgs(ctx, &cmd, args)
+	case "go":
+		parseGoArgs(&cmd, args)
+	case "setoption":
+	}
+
+	return cmd
+}
+
 func parseMove(moveStr string, board *Board) (Move, bool) {
 	if len(moveStr) < 4 || len(moveStr) > 5 {
 		return Move(0), false
@@ -21,7 +89,7 @@ func parseMove(moveStr string, board *Board) (Move, bool) {
 
 	var ml MoveList
 	board.GenerateMoves(&ml)
-	ml.Print(board.State.SideToMove, board)
+	// ml.Print(board.State.SideToMove, board)
 
 	from := Square((rune(moveStr[0]) - 'a') + (8-(rune(moveStr[1])-'0'))*8)
 	to := Square((rune(moveStr[2]) - 'a') + (8-(rune(moveStr[3])-'0'))*8)
@@ -35,7 +103,10 @@ func parseMove(moveStr string, board *Board) (Move, bool) {
 	for i := 0; i < ml.Len(); i++ {
 		move := ml.GetMove(i)
 
+		// println(move.getFrom(), from, move.getTo(), to)
+
 		if move.getFrom() == from && move.getTo() == to {
+			println(move, 78998)
 			promotionPiece = move.PromotionPiece(board.State.SideToMove)
 
 			if promotionPiece != Zilch {
@@ -76,45 +147,141 @@ func parseMove(moveStr string, board *Board) (Move, bool) {
 			return move, true
 		}
 	}
-
+	println(97879)
 	return Move(0), false
 }
 
-func parsePosition (command string) (Board, error) {
-	var board Board
+// parses arguments like: "startpos moves e2e4"
+func parsePositionArgs(ctx *Context, cmd *UCICommand, tokens []string) {
+	board := NewBoard()
 
-	commandParts := strings.Split(command, " ")
+	i := 0
+	for i < len(tokens) {
+		token := tokens[i]
 
-	outer:
-	for len(commandParts) > 0 {
-		switch commandParts[0] {
+		switch token {
 		case "startpos":
 			board.FenSetup(FenStartPosition)
-			commandParts = commandParts[1:]
+			i++
 		case "fen":
-			fen := strings.Join(commandParts[1:7], " ")
+			fen := strings.Join(tokens[i+1:i+7], " ")
 			board.FenSetup(fen)
-			commandParts = commandParts[7:]
+			i += 7
 		case "moves":
-			for i := 1; i < len(commandParts); i++ {
-				moveStr := commandParts[i]
-				move, valid := parseMove(moveStr, &board)
-				if !valid {
-					return Board{}, &UciParseError{Part: "position", Message: fmt.Sprintf("Invalid move in position command: %s", moveStr)}
+			i++ // skip "moves" keyword
+			// The rest of the tokens should be moves
+			for i < len(tokens) {
+				moveStr := tokens[i]
+				move, valid := parseMove(moveStr, board)
+
+				if valid {
+					cmd.Moves = append(cmd.Moves, move)
+
+					board.MakeMove(move)
+				} else {
+					// Handle invalid move? UCI spec says ignore
 				}
-				board.MakeMove(move)
+				i++
 			}
-			commandParts = []string{} // all parts processed
 		default:
-			// println("Unknown token in position command:", commandParts[0])
-			// return
-			commandParts = commandParts[1:] // skip unknown token
-			continue outer
+			// Unknown token, skip
+			i++
 		}
 	}
 
-	println("Position parsed successfully. Current board state:")
-	board.PrintBoardWithPieces()
+	ctx.board = board
+}
 
-	return board, nil
+func parseGoArgs(cmd *UCICommand, tokens []string) {
+	i := 0
+	for i < len(tokens) {
+		// most go commands are key-value pairs (ex: "depth 5")
+		// Check if we have a next token
+		if i+1 < len(tokens) {
+			key := tokens[i]
+			val := tokens[i+1]
+
+			cmd.Args[key] = val
+
+			i += 2
+		} else {
+			// Standalone token, like "ponder"
+			cmd.Args[tokens[i]] = "true"
+			i++
+		}
+	}
+}
+
+func UciMessageLoop(buffer []string) {
+	// ctx := NewContext()
+
+	// broadcastChan := newBroadcastStream(ctx)
+	var mode Mode
+
+	if len(buffer) == 0 {
+		mode = Uci
+	} else {
+		mode = Cli
+	}
+
+	for {
+		// var message string
+		if 1 != mode {
+			// main command
+		} else if mode == Uci {
+
+		}
+	}
+}
+
+func newBroadcastStream(ctx *Context) <-chan string {
+	ch := make(chan string)
+
+	go func() {
+		defer close(ch)
+
+	outer:
+		for {
+			var message string
+			scanner := bufio.NewScanner(os.Stdin)
+
+			for scanner.Scan() {
+				message = scanner.Text()
+
+				switch strings.TrimSpace(message) {
+				case "isready":
+					println("readyok")
+				case "stop":
+					ctx.status.Set(internal.StatusStopped)
+				case "quit":
+					ctx.status.Set(internal.StatusStopped)
+					ch <- "quit"
+					break outer
+				default:
+					if ctx.status.Get() != internal.StatusRunning {
+						ch <- message
+					}
+				}
+			}
+
+			if err := scanner.Err(); err != nil {
+				log.Fatalf("Error reading standard input: %v", err)
+			}
+
+			// EOF
+			if ctx.status.Get() != internal.StatusRunning {
+				ch <- "quit"
+			}
+		}
+	}()
+
+	return ch
+}
+
+func handleUci() {
+	println("id name Reckless Stewfish v", internal.Version)
+	println("id author Alviss Raghnall")
+	fmt.Printf("option name Threads type spin default 1 min 1 max %d", 1)
+
+	println("uciok")
 }
