@@ -3,8 +3,8 @@ package engine
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/alvissraghnall/stewfish/internal"
@@ -212,66 +212,106 @@ func parseGoArgs(cmd *UCICommand, tokens []string) {
 	}
 }
 
-func UciMessageLoop(buffer []string) {
-	// ctx := NewContext()
+func UciMessageLoop(buffer internal.Deque[string]) {
+	ctx := NewContext()
 
-	// broadcastChan := newBroadcastStream(ctx)
+	broadcastChan := newBroadcastStream(ctx)
 	var mode Mode
 
-	if len(buffer) == 0 {
+	if buffer.Len() == 0 {
 		mode = Uci
 	} else {
 		mode = Cli
 	}
 
 	for {
-		// var message string
-		if 1 != mode {
-			// main command
+		var message string
+		if m, ok := buffer.DequeueLeft(); ok {
+			message = m
 		} else if mode == Uci {
+			var ok bool
+			if message, ok = <-broadcastChan; !ok {
+				break // Channel closed (EOF)
+			}
+		} else {
+			break
+		}
 
+		cmd := ParseUCI(message, ctx)
+
+		switch cmd.Name {
+		case "uci":
+			handleUci()
+			mode = Uci
+		case "isready":
+			fmt.Printf("readyok")
+		case "go":
+			depthStr, ok := cmd.Args["depth"]
+			if ok {
+				depth, _ := strconv.Atoi(depthStr)
+				fmt.Printf("Starting search depth %d\n", depth)
+			}
+		case "position":
+			// The context (ctx.board) is already updated by ParseUCI!
+			// We just do nothing, as state is set.
+		case "stop":
+			ctx.status.Set(internal.StatusStopped)
+		case "ucinewgame":
+			parsePositionArgs(ctx, &cmd, []string{"startpos"})
+		case "quit":
+			// dispose of board state
+			return
+		}
+
+		if mode == Cli && buffer.Len() == 0 {
+			break
 		}
 	}
 }
 
 func newBroadcastStream(ctx *Context) <-chan string {
 	ch := make(chan string)
+	scanner := bufio.NewScanner(os.Stdin)
 
 	go func() {
 		defer close(ch)
 
-	outer:
-		for {
-			var message string
-			scanner := bufio.NewScanner(os.Stdin)
+		var message string
 
-			for scanner.Scan() {
-				message = scanner.Text()
+		for scanner.Scan() {
+			message = strings.TrimSpace(scanner.Text())
 
-				switch strings.TrimSpace(message) {
-				case "isready":
-					println("readyok")
-				case "stop":
-					ctx.status.Set(internal.StatusStopped)
-				case "quit":
-					ctx.status.Set(internal.StatusStopped)
-					ch <- "quit"
-					break outer
-				default:
-					if ctx.status.Get() != internal.StatusRunning {
-						ch <- message
+			switch message {
+			case "isready":
+				println("readyok")
+				continue
+			case "stop":
+				ctx.status.Set(internal.StatusStopped)
+				continue
+			case "quit":
+				ctx.status.Set(internal.StatusStopped)
+				select {
+				case ch <- "quit":
+				default: // dont blovk if no listeners
+				}
+				return
+			default:
+				if ctx.status.Get() != internal.StatusRunning {
+					select {
+					case ch <- message:
+					default: // drop silently if no listener
 					}
 				}
 			}
+		}
 
-			if err := scanner.Err(); err != nil {
-				log.Fatalf("Error reading standard input: %v", err)
-			}
+		if err := scanner.Err(); err != nil {
+			return // fail silently
+		}
 
-			// EOF
-			if ctx.status.Get() != internal.StatusRunning {
-				ch <- "quit"
-			}
+		// EOF
+		if ctx.status.Get() != internal.StatusRunning {
+			ch <- "quit"
 		}
 	}()
 
@@ -279,9 +319,9 @@ func newBroadcastStream(ctx *Context) <-chan string {
 }
 
 func handleUci() {
-	println("id name Reckless Stewfish v", internal.Version)
-	println("id author Alviss Raghnall")
+	fmt.Println("id name Reckless Stewfish v", internal.Version)
+	fmt.Println("id author Alviss Raghnall")
 	fmt.Printf("option name Threads type spin default 1 min 1 max %d", 1)
 
-	println("uciok")
+	fmt.Println("uciok")
 }
