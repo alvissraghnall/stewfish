@@ -6,6 +6,8 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/alvissraghnall/stewfish/internal"
 )
 
 const (
@@ -25,6 +27,8 @@ type GameState struct {
 	EnPassantSquare Square
 	FullmoveNumber  uint16
 	CapturedPiece   Piece
+	PhaseValue      int
+	PsqtValue       [2]internal.Weight
 }
 
 func NewGameState() *GameState {
@@ -350,8 +354,18 @@ func (board *Board) FenSetup(fen string) error {
 
 	tempBoard.OccupancyBitboards[both] |= tempBoard.OccupancyBitboards[white] | tempBoard.OccupancyBitboards[black]
 
+	tempBoard.init()
 	*board = *tempBoard
 	return nil
+}
+
+func (board *Board) init() {
+
+	board.State.PhaseValue = phaseCount(board)
+	psqt0, psqt1 := applyPsqt(board)
+	board.State.PsqtValue[white] = psqt0
+	board.State.PsqtValue[black] = psqt1
+
 }
 
 // / This function splits the incoming FEN-string into its component parts.
@@ -568,7 +582,7 @@ func (board *Board) MakeMove(move Move) {
 		board.addPiece(promoPiece, to)
 	}
 
-	board.State.SideToMove ^= 1
+	board.SwapSides()
 
 	if board.State.SideToMove == white {
 		board.State.FullmoveNumber += 1
@@ -655,6 +669,12 @@ func (board *Board) addPiece(piece Piece, square Square) {
 	board.OccupancyBitboards[side] = setBit(board.OccupancyBitboards[side], square)
 	board.OccupancyBitboards[both] = board.OccupancyBitboards[white] | board.OccupancyBitboards[black]
 	board.PieceList[square] = piece
+
+	// // //
+
+	board.State.PhaseValue += phaseValues[piece%6]
+	square = flipSquare(side, square)
+	board.State.PsqtValue[side].Add(psqtSet[piece][square])
 }
 
 func (board *Board) removePiece(piece Piece, square Square) {
@@ -664,4 +684,20 @@ func (board *Board) removePiece(piece Piece, square Square) {
 	board.OccupancyBitboards[side] = popBit(board.OccupancyBitboards[side], square)
 	board.OccupancyBitboards[both] = board.OccupancyBitboards[white] | board.OccupancyBitboards[black]
 	board.PieceList[square] = Zilch
+
+	///////
+
+	board.State.PhaseValue -= phaseValues[piece%6]
+	square = flipSquare(side, square)
+	board.State.PsqtValue[side].Sub(psqtSet[piece][square])
+
+}
+
+func (board *Board) SwapSides() {
+	board.State.SideToMove ^= 1
+}
+
+func (board *Board) movePiece(piece Piece, from Square, to Square) {
+	board.removePiece(piece, from)
+	board.addPiece(piece, to)
 }

@@ -1,13 +1,20 @@
 package engine
 
-import . "github.com/alvissraghnall/stewfish/internal"
+import (
+	"math"
 
-var pieceValues [6]int = [6]int{
-	0, 280, 320, 525, 935, 0, 
+	. "github.com/alvissraghnall/stewfish/internal"
+)
+
+var phaseValues [6]int = [6]int{
+	0, 280, 320, 525, 935, 0,
 }
 
 type Psqt [64]Weight
 type PsqtSet [6]Psqt
+
+const MaxPhase = 6370
+const MinPhase = 0
 
 var kingPsqt = Psqt{
 
@@ -94,6 +101,22 @@ var Flip = [64]Square{
 	0, 1, 2, 3, 4, 5, 6, 7,
 }
 
+// counts all phase values and sums them. used in board init ONLY. after that, the phase value is updated incrementally every time a piece is moved.
+func phaseCount (board *Board) int {
+	whitePhase, blackPhase := 0, 0
+	whiteBB, blackBB := board.Bitboards[:6], board.Bitboards[6:]
+
+	for piece := P; piece <= K; piece++ {
+		for bb := whiteBB[piece]; bb != 0; bb = popBit(bb, Square(getIndexOfLS1B(bb))) {
+			whitePhase += phaseValues[piece]
+		}
+		for bb := blackBB[piece]; bb != 0; bb = popBit(bb, Square(getIndexOfLS1B(bb))) {
+			blackPhase += phaseValues[piece]
+		}
+	}
+	return whitePhase + blackPhase
+}
+
 // Apply the PSQTs to the current position. only used during
 // board init, after a position has been loaded from fen.
 // return value goes in game state, so the engine updates
@@ -115,4 +138,42 @@ func applyPsqt(board *Board) (Weight, Weight) {
 		}
 	}
 	return W(whiteMg, whiteEg), W(blackMg, blackEg)
+}
+
+func smoothstep(edge0, edge1, x float64) float64 {
+	x = clamp((x-edge0)/(edge1-edge0), 0.0, 1.0)
+
+	return x * x * (3.0 - 2.0*x)
+}
+
+func clamp(x, lowerlimit, upperlimit float64) float64 {
+	if x < lowerlimit {
+		return lowerlimit
+	}
+	if x > upperlimit {
+		return upperlimit
+	}
+	return x
+}
+
+func psqtScore(board *Board) int16 {
+	psqtWhiteMg := float64(board.State.PsqtValue[white].Mg())
+	psqtWhiteEg := float64(board.State.PsqtValue[white].Eg())
+	psqtBlackMg := float64(board.State.PsqtValue[black].Mg())
+	psqtBlackEg := float64(board.State.PsqtValue[black].Eg())
+
+	phase := smoothstep(MinPhase, MaxPhase, float64(board.State.PhaseValue))
+
+	whiteScore := (psqtWhiteMg*phase) + (psqtWhiteEg * (1.0 - phase))
+	blackScore := (psqtBlackMg*phase) + (psqtBlackEg * (1.0 - phase))
+
+	
+	return int16(math.Round(whiteScore - blackScore))
+}
+
+func flipSquare(side int, square Square) Square {
+	if side == white {
+		return Flip[square]
+	}
+	return square
 }
