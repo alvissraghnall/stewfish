@@ -175,18 +175,23 @@ func perftTestInternal(depth int, board *engine.Board) uint64 {
 
 	var nodes uint64
 
-	if depth == 1 {
-		for i := 0; i < ml.Len(); i++ {
-			move := ml.GetMove(i)
-			board.MakeMove(move)
-			if !board.IsInCheck(board.State.SideToMove ^ 1) {
-				nodes++
-			}
-			board.UndoMove(move)
-		}
-		return nodes
-	}
+	count := ml.Len()
 
+	if depth == 1 {
+        var nodes uint64 = 0
+		moves := ml.SliceMoves() 
+        for i := range count {
+            move := moves[i]
+            board.MakeMove(move)
+            // Checking the side that just moved (XOR 1) to see if they left their king in check
+            if !board.IsInCheck(board.State.SideToMove ^ 1) {
+                nodes++
+            }
+            board.UndoMove(move)
+        }
+        return nodes
+    }
+	
 	for i := 0; i < ml.Len(); i++ {
 		move := ml.GetMove(i)
 		board.MakeMove(move)

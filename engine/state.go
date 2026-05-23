@@ -674,7 +674,7 @@ func (board *Board) addPiece(piece Piece, square Square) {
 
 	board.State.PhaseValue += phaseValues[piece%6]
 	square = flipSquare(side, square)
-	board.State.PsqtValue[side].Add(psqtSet[piece][square])
+	board.State.PsqtValue[side].Add(psqtSet[piece%6][square])
 }
 
 func (board *Board) removePiece(piece Piece, square Square) {
@@ -689,7 +689,7 @@ func (board *Board) removePiece(piece Piece, square Square) {
 
 	board.State.PhaseValue -= phaseValues[piece%6]
 	square = flipSquare(side, square)
-	board.State.PsqtValue[side].Sub(psqtSet[piece][square])
+	board.State.PsqtValue[side].Sub(psqtSet[piece%6][square])
 
 }
 

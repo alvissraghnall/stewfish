@@ -1,0 +1,12 @@
+{
+    "go.testFlags": ["-v"],
+    "go.testTimeout": "30s",
+    "go.lintTool": "golangci-lint",
+    "go.lintOnSave": "package",
+    "go.lintFlags": [
+        "--fast",
+        "--disable=dupl",
+        "--disable=funlen",
+        "--disable=lll",
+    ]
+}
