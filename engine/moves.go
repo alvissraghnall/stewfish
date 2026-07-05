@@ -174,7 +174,7 @@ func (move Move) PromotionPiece(side int) Piece {
 		return Zilch
 	}
 	promoType := Piece(move.getFlag()&0b11) + N // +N offset maps 0->N,1->B,2->R,3->Q
-	println(promoType, move.getFlag(), move.getFlag()&0b11, string(BitboardSquares[move.getFrom()]), string(BitboardSquares[move.getTo()]))
+	// println(promoType, move.getFlag(), move.getFlag()&0b11, string(BitboardSquares[move.getFrom()]), string(BitboardSquares[move.getTo()]))
 	if side == black {
 		promoType += 6 // offset for black pieces (p..k)
 	}

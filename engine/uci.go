@@ -106,15 +106,12 @@ func parseMove(moveStr string, board *Board) (Move, bool) {
 		// println(move.getFrom(), from, move.getTo(), to)
 
 		if move.getFrom() == from && move.getTo() == to {
-			println(move, 78998)
 			promotionPiece = move.PromotionPiece(board.State.SideToMove)
 
 			if promotionPiece != Zilch {
 				if len(moveStr) != 5 {
 					return Move(0), false
 				}
-
-				println(string(promotedPieces[promotionPiece]), string(moveStr[4]))
 
 				switch moveStr[4] {
 				case 'q':
@@ -147,7 +144,6 @@ func parseMove(moveStr string, board *Board) (Move, bool) {
 			return move, true
 		}
 	}
-	println(97879)
 	return Move(0), false
 }
 
@@ -161,6 +157,7 @@ func parsePositionArgs(ctx *Context, cmd *UCICommand, tokens []string) {
 
 		switch token {
 		case "startpos":
+			fmt.Println("startpos")
 			board.FenSetup(FenStartPosition)
 			i++
 		case "fen":
@@ -244,14 +241,39 @@ func UciMessageLoop(buffer internal.Deque[string]) {
 			handleUci()
 			mode = Uci
 		case "isready":
-			fmt.Printf("readyok")
+			fmt.Println("readyok")
+
 		case "go":
-			depthStr, ok := cmd.Args["depth"]
-			if ok {
-				depth, _ := strconv.Atoi(depthStr)
-				fmt.Printf("Starting search depth %d\n", depth)
+
+			depth := 5
+
+			if depthStr, ok := cmd.Args["depth"]; ok {
+				if d, err := strconv.Atoi(depthStr); err == nil {
+					depth = d
+				}
 			}
+
+			ctx.status.Start()
+
+			resultChan := make(chan Move, 1)
+			go func(board *Board, depth int, status *internal.UciStatus) {
+				resultChan <- SearchPosition(board, depth, status)
+			}(ctx.board, depth, ctx.status)
+
+			go func() {
+				bestMove := <-resultChan
+				ctx.status.Set(internal.StatusStopped)
+				if bestMove.isNull() {
+					fmt.Println("bestmove 0000")
+				} else {
+					fmt.Printf("bestmove %s\n", bestMove.String())
+				}
+			}()
+			// main loop falls straight back to reading broadcastChan so it doesn't block
 		case "position":
+			if ctx.status.Get() == internal.StatusRunning {
+				break
+			}
 			// The context (ctx.board) is already updated by ParseUCI!
 			// We just do nothing, as state is set.
 		case "stop":
@@ -270,16 +292,13 @@ func UciMessageLoop(buffer internal.Deque[string]) {
 }
 
 func newBroadcastStream(ctx *Context) <-chan string {
-	ch := make(chan string)
+	ch := make(chan string, 64) // buffered so bursts don't need an instantly-ready receiver
 	scanner := bufio.NewScanner(os.Stdin)
 
 	go func() {
 		defer close(ch)
-
-		var message string
-
 		for scanner.Scan() {
-			message = strings.TrimSpace(scanner.Text())
+			message := strings.TrimSpace(scanner.Text())
 
 			switch message {
 			case "isready":
@@ -290,29 +309,16 @@ func newBroadcastStream(ctx *Context) <-chan string {
 				continue
 			case "quit":
 				ctx.status.Set(internal.StatusStopped)
-				select {
-				case ch <- "quit":
-				default: // dont blovk if no listeners
-				}
+				ch <- "quit" // blocking is fine now, buffer absorbs it
 				return
 			default:
-				if ctx.status.Get() != internal.StatusRunning {
-					select {
-					case ch <- message:
-					default: // drop silently if no listener
-					}
-				}
+				ch <- message // always forward — never drop
 			}
 		}
-
 		if err := scanner.Err(); err != nil {
-			return // fail silently
+			return
 		}
-
-		// EOF
-		if ctx.status.Get() != internal.StatusRunning {
-			ch <- "quit"
-		}
+		ch <- "quit"
 	}()
 
 	return ch
@@ -321,7 +327,7 @@ func newBroadcastStream(ctx *Context) <-chan string {
 func handleUci() {
 	fmt.Println("id name Reckless Stewfish v", internal.Version)
 	fmt.Println("id author Alviss Raghnall")
-	fmt.Printf("option name Threads type spin default 1 min 1 max %d", 1)
+	fmt.Println("option name Threads type spin default 1 min 1 max ", 1)
 
 	fmt.Println("uciok")
 }

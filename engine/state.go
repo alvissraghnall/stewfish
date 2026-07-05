@@ -274,7 +274,7 @@ func (f *Fen) EnPassant() error {
 		if (sq >= int(EnPassantSquaresWhiteStart) && sq <= int(EnPassantSquaresWhiteEnd)) ||
 			(sq >= int(EnPassantSquaresBlackStart) && sq <= int(EnPassantSquaresBlackEnd)) {
 
-			println(sq)
+			// println(sq)
 			f.board.State.EnPassantSquare = Square(sq)
 			return nil
 		}
@@ -390,8 +390,8 @@ func splitFenString(fenString string) ([]string, error) {
 		return nil, fmt.Errorf("Invalid FEN string: %s", fenString)
 	}
 
-	println(fenString)
-	fmt.Printf("%#v\n", fenAsSlice)
+	// println(fenString)
+	// fmt.Printf("%#v\n", fenAsSlice)
 	return fenAsSlice, nil
 
 }
@@ -498,109 +498,103 @@ func (board *Board) snapshot() Undo {
 	}
 }
 
-func (board *Board) UndoMove(move Move) {
-	state, worked, err := board.History.pop()
-	if !worked || err != nil {
-		panic(fmt.Sprintf("failed to pop undo state from history: %v", err))
-	}
+func (board *Board) MakeMove(move Move) bool {
+    sideToMove := board.State.SideToMove
+    from, to := move.getFrom(), move.getTo()
+    piece := board.PieceAt(from)
 
-	board.Bitboards = state.Bitboards
-	board.OccupancyBitboards = state.OccupancyBitboards
-	board.PieceList = state.PieceList
-	*board.State = state.State
+    board.History.push(board.snapshot())
+    board.State.CapturedPiece = Zilch
+
+    if board.State.EnPassantSquare != none {
+        board.State.EnPassantSquare = none
+    }
+
+    if move.isCapture() || pieceToChar(piece) == "p" {
+        board.State.HalfMoveClock = 0
+    } else {
+        board.State.HalfMoveClock += 1
+    }
+
+    captured := board.PieceAt(to)
+
+    if captured != Zilch && !move.isCastling() {
+        board.removePiece(piece, from)
+        board.removePiece(captured, to)
+        board.addPiece(piece, to)
+        board.State.CapturedPiece = captured
+    } else if !move.isCastling() {
+        board.removePiece(piece, from)
+        board.addPiece(piece, to)
+    }
+
+    switch {
+    case move.isDoublePush():
+        board.State.EnPassantSquare = Square((int(from) + int(to)) / 2)
+    case move.isEnPassant():
+        var capturedPiece Piece
+        if sideToMove == white {
+            capturedPiece = p
+        } else {
+            capturedPiece = P
+        }
+        board.removePiece(capturedPiece, to^8)
+    case move.isCastling():
+        rookFrom, rookTo := getCastlingRookMove(to)
+        var rookPiece Piece
+        if sideToMove == white {
+            rookPiece = R
+        } else {
+            rookPiece = r
+        }
+        board.removePiece(rookPiece, rookFrom)
+        board.removePiece(piece, from)
+        board.addPiece(piece, to)
+        board.addPiece(rookPiece, rookTo)
+    case move.isPromotion():
+        promoPiece := move.PromotionPiece(sideToMove)
+        board.removePiece(piece, to)
+        board.addPiece(promoPiece, to)
+    }
+
+    board.SwapSides()
+
+    if board.State.SideToMove == white {
+        board.State.FullmoveNumber += 1
+    }
+
+    board.State.CastlingRights &^= castlingRightMask(from) | castlingRightMask(to)
+
+    // Legality check: side that just moved must not leave their king in check
+    if board.IsInCheck(sideToMove) {
+        board.UndoMove(move)
+        return false
+    }
+
+    return true
 }
 
-func (board *Board) MakeMove(move Move) {
-	sideToMove := board.State.SideToMove
-	from, to := move.getFrom(), move.getTo()
-	piece := board.PieceAt(from)
+func (board *Board) UndoMove(move Move) {
+    state, worked, err := board.History.pop()
+    if !worked || err != nil {
+        panic(fmt.Sprintf("failed to pop undo state from history: %v", err))
+    }
 
-	board.History.push(board.snapshot())
-	board.State.CapturedPiece = Zilch
-
-	if board.State.EnPassantSquare != none {
-		board.State.EnPassantSquare = none
-	}
-
-	if move.isCapture() || pieceToChar(piece) == "p" {
-		board.State.HalfMoveClock = 0
-	} else {
-		board.State.HalfMoveClock += 1
-	}
-
-	captured := board.PieceAt(to)
-
-	if captured != Zilch && !move.isCastling() {
-		board.removePiece(piece, from)
-
-		board.removePiece(captured, to)
-
-		board.addPiece(piece, to)
-
-		board.State.CapturedPiece = captured
-
-	} else if !move.isCastling() {
-		board.removePiece(piece, from)
-		board.addPiece(piece, to)
-	}
-
-	switch {
-	case move.isDoublePush():
-		board.State.EnPassantSquare = Square((int(from) + int(to)) / 2)
-	case move.isEnPassant():
-		var capturedPiece Piece
-
-		if sideToMove == white {
-			capturedPiece = p
-		} else {
-			capturedPiece = P
-		}
-		board.removePiece(capturedPiece, to^8)
-	case move.isCastling():
-		rookFrom, rookTo := getCastlingRookMove(to)
-		var rookPiece Piece
-		if sideToMove == white {
-			rookPiece = R
-		} else {
-			rookPiece = r
-		}
-
-		// remove the rook from its original square
-		board.removePiece(rookPiece, rookFrom)
-		// board.removePiece(board.PieceAt(rookFrom), rookFrom)
-
-		// remove the king
-		board.removePiece(piece, from)
-
-		// add the king to its new square
-		board.addPiece(piece, to)
-		board.addPiece(rookPiece, rookTo)
-
-	case move.isPromotion():
-		var promoPiece Piece = move.PromotionPiece(sideToMove)
-		board.removePiece(piece, to)
-		board.addPiece(promoPiece, to)
-	}
-
-	board.SwapSides()
-
-	if board.State.SideToMove == white {
-		board.State.FullmoveNumber += 1
-	}
-
-	board.State.CastlingRights &^= castlingRightMask(from) | castlingRightMask(to)
+    board.Bitboards = state.Bitboards
+    board.OccupancyBitboards = state.OccupancyBitboards
+    board.PieceList = state.PieceList
+    *board.State = state.State
 }
 
 func (board *Board) IsLegal(move Move) bool {
-	if move.isNull() {
-		panic("Move cannot be null.")
-	}
-
-	board.MakeMove(move)
-	isLegal := !board.IsInCheck(board.State.SideToMove ^ 1)
-	board.UndoMove(move)
-
-	return isLegal
+    if move.isNull() {
+        panic("Move cannot be null.")
+    }
+    if !board.MakeMove(move) {
+        return false
+    }
+    board.UndoMove(move)
+    return true
 }
 
 func (board *Board) isInMultipleCheck(side int) bool {

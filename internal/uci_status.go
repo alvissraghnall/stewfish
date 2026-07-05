@@ -22,7 +22,7 @@ func NewStatus() *UciStatus {
 	}
 }
 
-func (status *UciStatus) Stop() {
+func (status *UciStatus) Close() {
 	atomic.StoreInt32(&status.state, StatusStopped)
 	status.once.Do(func() {
 		close(status.stop)

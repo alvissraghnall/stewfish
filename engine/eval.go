@@ -156,7 +156,7 @@ func clamp(x, lowerlimit, upperlimit float64) float64 {
 	return x
 }
 
-func psqtScore(board *Board) int16 {
+func (board *Board) Evaluate() int {
 	psqtWhiteMg := float64(board.State.PsqtValue[white].Mg())
 	psqtWhiteEg := float64(board.State.PsqtValue[white].Eg())
 	psqtBlackMg := float64(board.State.PsqtValue[black].Mg())
@@ -168,7 +168,7 @@ func psqtScore(board *Board) int16 {
 	blackScore := (psqtBlackMg*phase) + (psqtBlackEg * (1.0 - phase))
 
 	
-	return int16(math.Round(whiteScore - blackScore))
+	return int(math.Round(whiteScore - blackScore))
 }
 
 func flipSquare(side int, square Square) Square {

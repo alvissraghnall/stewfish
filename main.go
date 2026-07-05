@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/alvissraghnall/stewfish/engine"
 	"github.com/alvissraghnall/stewfish/internal"
@@ -35,29 +34,33 @@ func main() {
 	// fen := "r1bqkbnr/pppppppp/2n5/8/4P3/5N2/PPPP1PPP/RNBQKB1R b KQkq e3 0 2"
 	// fen := "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 	// fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpP/R3K2R w KQkq a3 0 1 "
-	fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
+	// fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1 "
 	// fen := "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPpP/R3K2R b KQkq - 0 1 "
 
-	var board *engine.Board = engine.NewBoard()
+	// var board *engine.Board = engine.NewBoard()
 
-	err := board.FenSetup(fen)
-	if err != nil {
-		panic(err)
-	}
-	board.PrintBoardWithPieces()
+	// err := board.FenSetup(fen)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// board.PrintBoardWithPieces()
 
-	var ml engine.MoveList
+	// var ml engine.MoveList
 
-	start := time.Now()
-	board.GenerateMoves(&ml)
+	// start := time.Now()
+	// board.GenerateMoves(&ml)
 
-	end := time.Now()
+	// end := time.Now()
 
-	ml.Print(0, board)
+	// ml.Print(0, board)
 
-	fmt.Printf("Move generation took %s\n", end.Sub(start))
+	// fmt.Printf("Move generation took %s\n", end.Sub(start))
 
-	fmt.Println("Version: ", internal.Version)
+	// fmt.Println("Version: ", internal.Version)
+
+	var buffer internal.Deque[string]
+	engine.UciMessageLoop(buffer)
+
 }
 
 func PrintJSON(obj any) {
